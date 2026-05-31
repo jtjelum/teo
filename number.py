@@ -83,7 +83,7 @@ class TEOEnphaseReserveNumber(TEOBaseEntity, NumberEntity):
     _attr_native_min_value = ENPHASE_RESERVE_MIN
     _attr_native_max_value = ENPHASE_RESERVE_MAX
     _attr_native_step = ENPHASE_RESERVE_STEP
-    _attr_mode = NumberMode.BOX
+    _attr_mode = NumberMode.SLIDER
 
     def __init__(self, coordinator) -> None:
         super().__init__(coordinator, "enphase_reserve_soc")

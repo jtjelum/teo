@@ -261,7 +261,7 @@ BATTERY_ACTION_IDLE: Final = "idle"
 # ---------------------------------------------------------------------------
 
 # Bruges KUN i Self-Hosted-tilstand. I Local-tilstand foretages ingen kald.
-TEO_API_BASE_URL: Final = "https://api.teo.energy"
+TEO_API_BASE_URL: Final = "https://api.tjelum.dk"
 API_PATH_REGISTER: Final = "/v1/register"
 API_PATH_CONFIG: Final = "/v1/config"
 API_PATH_UPDATES: Final = "/v1/updates"
