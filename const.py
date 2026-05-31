@@ -22,9 +22,7 @@ TEO_VERSION: Final = "1.0.0"
 
 # Algoritme-version er bevidst adskilt fra TEO_VERSION (spec §12).
 # Den ændres når optimizer-parametre eller LP-model justeres.
-# Algorithm version læses fra fil ved runtime (auto-bump ved daily calibration)
-from .version import read_version
-ALGORITHM_VERSION: str = read_version()
+ALGORITHM_VERSION: Final = "1.0.0"
 
 # ---------------------------------------------------------------------------
 # Filstier (relativt til HA's /config-mappe)
@@ -33,6 +31,7 @@ ALGORITHM_VERSION: str = read_version()
 CONFIG_DIR: Final = "/config"
 INSTALLATION_ID_FILE: Final = "teo_installation_id.txt"
 CONFIG_FILE: Final = "teo_config.yaml"
+USER_SETTINGS_FILE: Final = "teo_user_settings.yaml"
 DECISIONS_DB_FILE: Final = "teo_decisions.db"
 SECRETS_DIR: Final = ".teo"  # /config/.teo/ — 600-rettigheder, krypterede tokens
 ENPHASE_TOKEN_FILE: Final = "enphase_token.json"
@@ -187,6 +186,26 @@ MIN_SOC_SELECTABLE_STEP: Final = 5
 ENPHASE_RESERVE_MIN: Final = 5
 ENPHASE_RESERVE_MAX: Final = 95
 ENPHASE_RESERVE_STEP: Final = 5
+
+# ---------------------------------------------------------------------------
+# Brugerindstillinger — persistente GUI-værdier (teo_user_settings.yaml)
+# ---------------------------------------------------------------------------
+
+# YAML-nøgler for user settings
+USER_SETTING_MIN_SOC: Final = "minimum_soc_pct"
+USER_SETTING_RESERVE_SOC: Final = "reserve_soc_pct"
+USER_SETTING_CHARGE_FROM_GRID: Final = "charge_from_grid"
+USER_SETTING_SELL_AT_NEGATIVE: Final = "sell_at_negative_price"
+USER_SETTING_GRID_CHARGE_ALLOWED: Final = "grid_charge_allowed_in_optimization"
+USER_SETTING_EV_SOLAR_NET_ONLY: Final = "ev_charge_solar_net_only"
+
+# Defaults for user settings (Jakob's favoritindstillinger)
+DEFAULT_USER_MIN_SOC: Final = 5
+DEFAULT_USER_RESERVE_SOC: Final = 5
+DEFAULT_USER_CHARGE_FROM_GRID: Final = False
+DEFAULT_USER_SELL_AT_NEGATIVE: Final = False
+DEFAULT_USER_GRID_CHARGE_ALLOWED: Final = True
+DEFAULT_USER_EV_SOLAR_NET_ONLY: Final = True
 DEVICE_CATEGORIES: Final = (
     CATEGORY_BATTERY,
     CATEGORY_INVERTER,

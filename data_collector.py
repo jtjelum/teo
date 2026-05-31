@@ -321,24 +321,10 @@ class DataCollector:
             self._log.exception("Kunne ikke bygge målerække: %s", err)
             return None
         try:
-            rowid = await hass.async_add_executor_job(self._write, row)
+            return await hass.async_add_executor_job(self._write, row)
         except Exception as err:  # noqa: BLE001
             self._log.exception("Kunne ikke skrive målerække: %s", err)
             return None
-
-        # Decision tracking (lazy-loaded, fejl blokerer aldrig optimering)
-        try:
-            from .decision_tracker import DecisionTracker
-            tracker = DecisionTracker(self._path)
-            await tracker.log_decision(
-                hass,
-                planned_action=row.get("planned_battery_action"),
-                planned_reasoning=row.get("teo_reasoning_short"),
-            )
-        except Exception as err:  # noqa: BLE001
-            self._log.warning("Decision tracking fejlede (ikke-kritisk): %s", err)
-
-        return rowid
 
     async def _build_row(self, hass, coordinator) -> dict[str, Any]:
         """Byg measurements-rækken fra coordinator-snapshot + vejr + sol + tid."""

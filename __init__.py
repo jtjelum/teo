@@ -62,18 +62,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
-    # Registrer logsystem services og API (lazy-loaded)
-    try:
-        from .analyse_decisions import async_setup_decision_analysis_service
-        await async_setup_decision_analysis_service(hass)
-    except Exception as err:
-        _LOGGER.warning("Logsystem service registrering fejlede: %s", err)
-
-    try:
-        from .api import async_setup_api
-        await async_setup_api(hass)
-    except Exception as err:
-        _LOGGER.warning("Logsystem API registrering fejlede: %s", err)
+    # Registrer API endpoints (DEL 3 logsystem)
+    from .api import register_api_views
+    register_api_views(hass)
 
     await _async_setup_data_commons(hass, entry, coordinator)
 
@@ -125,21 +116,13 @@ async def _async_setup_data_commons(
 
     async def _handle_daily_calibration(call: ServiceCall) -> None:
         """Genberegn familieprofiler/sæsonmønstre (DEL 2, dagligt kl. 02:00)."""
-        from .version import bump_algorithm_version
         try:
             learner = FamilyLearner()
             summary = await hass.async_add_executor_job(learner.run)
             coordinator.last_learning_summary = summary
-            
-            # Bump algorithm version ved succesfuld kalibrering
-            if "error" not in summary:
-                new_version = await hass.async_add_executor_job(bump_algorithm_version)
-                coordinator.algorithm_version = new_version  # Opdater coordinator cache
-                _LOGGER.info("Familielæring kørt: %s (version bumped til %s)", summary, new_version)
-            else:
-                _LOGGER.warning("Familielæring fejlede: %s (version ikke bumped)", summary.get("error"))
+            _LOGGER.info("Familielæring kørt: %s", summary)
         except Exception as err:  # noqa: BLE001 — læring må aldrig vælte drift
-            _LOGGER.warning("Familielæring fejlede: %s (version ikke bumped)", err)
+            _LOGGER.warning("Familielæring fejlede: %s", err)
 
     async def _handle_price_analysis(call: ServiceCall) -> None:
         """Analysér morgendagens priser (DEL 3, dagligt kl. 13:30)."""
@@ -213,6 +196,22 @@ async def _async_setup_data_commons(
         except Exception as err:  # noqa: BLE001
             _LOGGER.warning("Modelanvendelse fejlede: %s", err)
 
+    async def _handle_decision_analysis(call: ServiceCall) -> None:
+        """Daglig afvigelses-analyse (DEL 2 logsystem, kl. 06:00)."""
+        from .analyse_decisions import run_daily_analysis
+        try:
+            result = await run_daily_analysis(hass)
+            if result.get("success"):
+                _LOGGER.info(
+                    "Afvigelses-analyse kørt: %d målinger, %d/%d planen fulgt",
+                    result.get("total_measurements", 0),
+                    result.get("plan_matches", 0),
+                    result.get("total_measurements", 0),
+                )
+            else:
+                _LOGGER.warning("Afvigelses-analyse fejlede: %s", result.get("error"))
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Afvigelses-analyse fejlede: %s", err)
 
     # Services så automations (DEL 6) og Udviklerværktøjer kan trigge manuelt.
     hass.services.async_register(DOMAIN, SERVICE_COLLECT_DATA, _handle_collect_service)
@@ -220,6 +219,7 @@ async def _async_setup_data_commons(
     hass.services.async_register(DOMAIN, SERVICE_PRICE_ANALYSIS, _handle_price_analysis)
     hass.services.async_register(DOMAIN, SERVICE_CLOUD_UPLOAD, _handle_cloud_upload)
     hass.services.async_register(DOMAIN, SERVICE_MODEL_UPDATE, _handle_model_update)
+    hass.services.async_register(DOMAIN, SERVICE_DECISION_ANALYSIS, _handle_decision_analysis)
     hass.services.async_register(DOMAIN, SERVICE_APPLY_MODEL, _handle_apply_model)
 
     # Daglige batch-jobs skemalægges i koden (DEL 6) frem for i bruger-YAML, så

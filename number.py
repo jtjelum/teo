@@ -61,6 +61,16 @@ class TEOMinSocNumber(TEOBaseEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         await self.coordinator.set_min_soc(value)
+        # Gem til user settings så værdien overlever genstart
+        try:
+            from . import user_settings
+            from .const import USER_SETTING_MIN_SOC
+            await self.hass.async_add_executor_job(
+                user_settings.set_value, USER_SETTING_MIN_SOC, float(value))
+        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
+            import logging
+            logging.getLogger(__name__).warning(
+                "Kunne ikke gemme min-SOC til user settings: %s", err)
         self.async_write_ha_state()
 
 
@@ -73,25 +83,29 @@ class TEOEnphaseReserveNumber(TEOBaseEntity, NumberEntity):
     _attr_native_min_value = ENPHASE_RESERVE_MIN
     _attr_native_max_value = ENPHASE_RESERVE_MAX
     _attr_native_step = ENPHASE_RESERVE_STEP
-    _attr_mode = NumberMode.SLIDER
+    _attr_mode = NumberMode.BOX
 
     def __init__(self, coordinator) -> None:
         super().__init__(coordinator, "enphase_reserve_soc")
         self.entity_id = "number.teo_enphase_reserve_soc"
 
     @property
-    def native_value(self) -> float:
-        # Read from config (persisted value)
-        rsv = self.coordinator.config.raw.get("battery", {}).get("reserve_soc_percent")
-        if rsv is not None:
-            return float(rsv)
-        # Fallback to last actuation
+    def native_value(self) -> float | None:
         rsv = (self.coordinator.last_actuation or {}).get("reserved_soc")
         if rsv is not None:
             return float(rsv)
-        # Final fallback to min_soc
         return float(self.coordinator.config.min_soc_pct)
 
     async def async_set_native_value(self, value: float) -> None:
-        await self.coordinator.set_reserve_soc(value)
+        await self.coordinator.manual_actuate(reserve_pct=value)
+        # Gem til user settings så værdien overlever genstart
+        try:
+            from . import user_settings
+            from .const import USER_SETTING_RESERVE_SOC
+            await self.hass.async_add_executor_job(
+                user_settings.set_value, USER_SETTING_RESERVE_SOC, float(value))
+        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
+            import logging
+            logging.getLogger(__name__).warning(
+                "Kunne ikke gemme reserve-SOC til user settings: %s", err)
         self.async_write_ha_state()

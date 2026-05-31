@@ -1,7 +1,30 @@
 # TEO Services
-# Definerer tilgængelige services for TEO-integrationen
+# Alle services kan kaldes manuelt fra Udviklerværktøjer > Services
+
+collect_data:
+  name: Indsaml måledata
+  description: Kør dataindsamling nu (normalt hvert 5. minut automatisk)
+
+daily_calibration:
+  name: Daglig kalibrering
+  description: Genberegn familieprofiler og sæsonmønstre (normalt kl. 02:00)
+
+price_analysis:
+  name: Prisanalyse
+  description: Analysér morgendagens priser (normalt kl. 13:30)
+
+cloud_upload:
+  name: Upload anonymiseret data
+  description: Upload døgndata til TEO Data Commons (normalt kl. 04:30, kun hvis opt-in)
+
+model_update:
+  name: Tjek for global model
+  description: Hent seneste globale model fra TEO API (normalt kl. 04:00)
+
+apply_model:
+  name: Anvend global model
+  description: Bekræft og anvend afventende global model (kræver brugerbekræftelse)
 
 decision_analysis:
-  name: Beslutningsanalyse
-  description: Analysér afvigelser mellem planlagte og faktiske batteribeslutninger de seneste 24 timer. Genererer rapport som persistent notification.
-  fields: {}
+  name: Afvigelses-analyse
+  description: Analysér seneste 24 timers planlagte vs. faktiske handlinger (normalt kl. 06:00)

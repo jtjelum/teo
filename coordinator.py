@@ -168,11 +168,10 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         # Seneste neteffekt fra AMS-readeren (kW, +import/−eksport) via MQTT-push.
         self._ams_grid_kw: Optional[float] = None
         self._ams_unsub = None
-        # Cached vejrkategori for solfaktor-lookup.
-        self._weather_category_cache: Optional[str] = "normal"
-        # Algorithm version (auto-bumpes ved daily calibration)
-        from .version import read_version as _read_version
-        self.algorithm_version: str = _read_version()
+        # Brugerindstillinger (indlæses fra teo_user_settings.yaml ved opstart)
+        self._user_reserve_soc: Optional[float] = None
+        self._user_charge_from_grid: Optional[bool] = None
+        self._user_ev_solar_net_only: Optional[bool] = None
 
     # -- opsætning ------------------------------------------------------
     async def _async_setup(self) -> None:
@@ -180,16 +179,60 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         data = await self.hass.async_add_executor_job(self._load_config_file)
         merged = {**data, **dict(self.entry.data)} if data else dict(self.entry.data)
         self.config = TEOConfig.from_dict(merged or {})
-        # Indlæs bruger-toggles (persisteret i teo_config.yaml under "control").
-        ctrl = (self.config.raw.get(CONF_CONTROL, {}) or {})
-        self.allow_negative_export = bool(
-            ctrl.get(CONF_SELL_AT_NEGATIVE_PRICE, DEFAULT_SELL_AT_NEGATIVE_PRICE))
-        self.allow_grid_charge = bool(
-            ctrl.get(CONF_CHARGE_FROM_GRID_ALLOWED, DEFAULT_CHARGE_FROM_GRID_ALLOWED))
+
+        # Indlæs persistente brugerindstillinger fra teo_user_settings.yaml.
+        # Lazy loading — fejl må ALDRIG nedlægge TEO-integrationen.
+        await self._load_user_settings()
+
         self.decision_log = await self.hass.async_add_executor_job(DecisionLog)
         from .battery_actuator import EnphaseBatteryActuator
         self._actuator = EnphaseBatteryActuator(self.hass)
         await self._subscribe_ams()
+
+    async def _load_user_settings(self) -> None:
+        """Indlæs persistente brugerindstillinger. Crasher aldrig."""
+        try:
+            from . import user_settings
+            settings = await self.hass.async_add_executor_job(user_settings.load)
+
+            # Sæt alle 6 indstillinger til gemte værdier (eller defaults)
+            from .const import (
+                USER_SETTING_MIN_SOC,
+                USER_SETTING_RESERVE_SOC,
+                USER_SETTING_CHARGE_FROM_GRID,
+                USER_SETTING_SELL_AT_NEGATIVE,
+                USER_SETTING_GRID_CHARGE_ALLOWED,
+                USER_SETTING_EV_SOLAR_NET_ONLY,
+            )
+
+            # Minimum SOC (bruges af LP-optimizer)
+            min_soc = settings.get(USER_SETTING_MIN_SOC)
+            if min_soc is not None:
+                self.config.min_soc_pct = float(min_soc)
+                # Opdatér også raw config så det er konsistent
+                self.config.raw.setdefault(CONF_BATTERY, {})[CONF_MIN_SOC_PCT] = float(min_soc)
+
+            # Reserve SOC (til Enphase battery_actuator — gemmes i last_actuation)
+            # Bemærk: denne værdi bruges først når manual_actuate kaldes første gang
+            self._user_reserve_soc = settings.get(USER_SETTING_RESERVE_SOC)
+
+            # Charge from grid switch (manuel netladning)
+            self._user_charge_from_grid = settings.get(USER_SETTING_CHARGE_FROM_GRID)
+
+            # LP-toggles (hårde begrænsninger i optimizer)
+            self.allow_negative_export = bool(settings.get(USER_SETTING_SELL_AT_NEGATIVE))
+            self.allow_grid_charge = bool(settings.get(USER_SETTING_GRID_CHARGE_ALLOWED))
+
+            # EV solar+net only (til fremtidig EV-integration)
+            self._user_ev_solar_net_only = settings.get(USER_SETTING_EV_SOLAR_NET_ONLY)
+
+            _LOGGER.info("Indlæste brugerindstillinger: min_soc=%s, reserve=%s, "
+                        "sell_negative=%s, grid_charge_allowed=%s",
+                        self.config.min_soc_pct, self._user_reserve_soc,
+                        self.allow_negative_export, self.allow_grid_charge)
+        except Exception as err:  # noqa: BLE001 — graceful degradation
+            _LOGGER.warning("Kunne ikke indlæse brugerindstillinger: %s — "
+                          "bruger defaults", err)
 
     async def _subscribe_ams(self) -> None:
         """Abonnér på AMS-readerens MQTT-topic for realtids-neteffekt.
@@ -257,7 +300,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             "summary": self.last_summary,
             "solver_status": self.last_solver_status,
             "fallback_active": self.fallback_active,
-            "algorithm_version": self.algorithm_version,
+            "algorithm_version": ALGORITHM_VERSION,
             "installation_id": self.config.installation_id,
             "mode": self.config.mode,
             "cost": self.cost_summary,
@@ -501,12 +544,13 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
                 state.get("opt_schedules") is not False           # opt re-aktiveret
                 or rsv is None
                 or abs(float(rsv) - desired[0]) > RESERVE_DRIFT_TOLERANCE_PCT
+                or bool(state.get("charge_from_grid")) != desired[2]
             )
             if not drifted:
                 return
 
         result = await self._actuator.apply(
-            reserve_pct=desired[0], mode=desired[1])
+            reserve_pct=desired[0], mode=desired[1], charge_from_grid=desired[2])
         if result.get("applied"):
             self._last_actuation = desired
             self._last_actuation_check_ts = now
@@ -648,6 +692,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             charge_from_grid=charge_from_grid)
         if result.get("applied"):
             self.last_actuation = {**result, "action": "manual"}
+            self._last_actuation = None  # tving auto-revurdering næste cyklus
         return result
 
     async def set_min_soc(self, pct: float) -> None:
@@ -671,20 +716,6 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
                 config_store.set_value, CONF_CONTROL, CONF_CHARGE_FROM_GRID_ALLOWED,
                 bool(grid_charge_allowed))
 
-    async def set_reserve_soc(self, pct: float) -> None:
-        """Sæt Enphase reserve-SOC: skriv til teo_config.yaml + actuate til Envoy."""
-        await self.hass.async_add_executor_job(
-            config_store.set_value, CONF_BATTERY, "reserve_soc_percent", float(pct))
-        self.config.raw.setdefault(CONF_BATTERY, {})["reserve_soc_percent"] = float(pct)
-        # Actuate til Envoy
-        await self.manual_actuate(reserve_pct=pct)
-
-    async def set_ev_protection(self, pct: float) -> None:
-        """Sæt EV protection SOC: skriv til teo_config.yaml."""
-        await self.hass.async_add_executor_job(
-            config_store.set_value, CONF_BATTERY, CONF_EV_PROTECTION_SOC_PCT, float(pct))
-        self.config.ev_protection_soc_pct = float(pct)
-        self.config.raw.setdefault(CONF_BATTERY, {})[CONF_EV_PROTECTION_SOC_PCT] = float(pct)
     def _current_weather_category(self) -> Optional[str]:
         """Seneste vejrkategori (til solfaktor-opslag). None hvis ukendt."""
         try:
