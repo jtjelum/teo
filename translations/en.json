@@ -1,0 +1,294 @@
+{
+  "_metadata": {
+    "language": "en",
+    "language_name": "English",
+    "version": "1.0.0",
+    "maintainer": "Jakob Tjelum",
+    "last_updated": "2026-05-13"
+  },
+
+  "config": {
+    "step": {
+      "user": {
+        "title": "TEO Setup — Language",
+        "description": "Select a language. If you have a previous installation ID you can enter it to restore your setup (optional).",
+        "data": {
+          "language": "Language",
+          "restore_id": "Previous installation ID (optional)"
+        }
+      },
+      "zone": {
+        "title": "Grid area",
+        "description": "Your grid area determines which Nord Pool prices TEO uses.",
+        "data": { "area": "Grid area" }
+      },
+      "mode": {
+        "title": "Mode",
+        "description": "TEO Local runs 100% offline with no account. TEO Self-Hosted connects to the TEO API with a free account (enter email).",
+        "data": { "mode": "Mode", "email": "Email (Self-Hosted only)" }
+      },
+      "discovery": {
+        "title": "Devices found on your network",
+        "description": "Select the devices TEO should control. Devices not found can be added later.",
+        "data": { "selected_devices": "Select devices", "continue": "Continue without devices" }
+      },
+      "parameters": {
+        "title": "System parameters",
+        "description": "All values have sensible defaults and can be changed later.",
+        "data": {
+          "min_soc_percent": "Minimum battery level (%)",
+          "ev_protection_soc_percent": "Stop EV charging below (%)",
+          "charge_from_grid_below_ore": "Charge battery from grid if price below (øre/kWh)",
+          "use_battery_above_ore": "Use battery if price above (øre/kWh)",
+          "solcast_api_key": "Solcast API key (optional)",
+          "azimuth_degrees": "Panel direction (0=N, 90=E, 180=S, 270=W)",
+          "tilt_degrees": "Panel tilt (degrees)",
+          "peak_power_kwp": "Installed peak power (kWp)",
+          "degradation_cost_dkk_per_kwh": "Battery wear (DKK per kWh cycled)"
+        }
+      }
+    },
+    "error": {
+      "invalid_id": "The installation ID is not in a valid format.",
+      "id_not_found": "ID not found — starting a new installation.",
+      "invalid_email": "Enter a valid email address."
+    },
+    "abort": {
+      "already_configured": "TEO is already configured for this installation."
+    }
+  },
+
+  "wizard": {
+    "title": "TEO Setup",
+    "subtitle": "Tjelums Energy Optimisation",
+    "step_of": "Step {current} of {total}",
+    "next": "Next",
+    "back": "Back",
+    "install": "Install TEO",
+    "scanning": "Scanning network...",
+    "scan_complete": "Scan complete",
+    "found_devices": "Found {count} device(s)",
+    "not_found": "Not found — enter manually",
+
+    "step1": {
+      "title": "Select language",
+      "description": "You can change the language again in settings."
+    },
+
+    "step2": {
+      "title": "Select grid area",
+      "description": "Your grid area determines which Nord Pool prices TEO uses.",
+      "dk2_label": "DK2 — Denmark East (Zealand, Bornholm)",
+      "dk1_label": "DK1 — Denmark West (Jutland, Funen)",
+      "se_label": "Sweden (SE1–SE4)",
+      "no_label": "Norway (NO1–NO5)",
+      "fi_label": "Finland"
+    },
+
+    "step3": {
+      "title": "Find your devices",
+      "description": "TEO scans your network for known devices. This typically takes 30 seconds.",
+      "scan_button": "Scan network",
+      "manual_entry": "Enter IP address manually",
+      "found_label": "Auto-discovered",
+      "manual_label": "Entered manually",
+      "categories": {
+        "battery": "Battery",
+        "inverter": "Inverter / Solar system",
+        "ev_charger": "EV charger",
+        "grid_meter": "Grid meter",
+        "heat_pump": "Heat pump"
+      }
+    },
+
+    "step4": {
+      "title": "System parameters",
+      "description": "All values have sensible defaults. You can change them later.",
+
+      "section_battery": "Battery protection",
+      "min_soc_label": "Minimum battery level",
+      "min_soc_description": "TEO will never discharge the battery below this level.",
+      "ev_protection_label": "Stop EV charging below",
+      "ev_protection_description": "The EV charger is paused if battery drops below this level.",
+
+      "section_price": "Price strategy",
+      "charge_below_label": "Charge battery from grid if price below",
+      "charge_below_description": "TEO charges the battery from the grid when the spot price is below this threshold.",
+      "use_battery_above_label": "Use battery if price above",
+      "use_battery_above_description": "TEO uses the battery instead of the grid when the price exceeds this threshold.",
+
+      "section_solar": "Solar forecast",
+      "solcast_key_label": "Solcast API key",
+      "solcast_key_description": "Free key from solcast.com. Requires registration.",
+      "solcast_get_key": "Get free key",
+      "azimuth_label": "Panel direction (azimuth)",
+      "azimuth_description": "0° = North, 90° = East, 180° = South, 270° = West",
+      "tilt_label": "Panel tilt",
+      "tilt_description": "Angle from horizontal. Flat roofs = 10°, pitched roofs = 30–45°.",
+      "peak_power_label": "Installed peak power",
+
+      "section_degradation": "Battery wear",
+      "degradation_cost_label": "Cost per kWh cycled",
+      "degradation_cost_description": "TEO includes battery wear in its calculations. The default of 0.04 DKK/kWh corresponds to approximately 0.5% of battery replacement cost per full cycle."
+    },
+
+    "step5": {
+      "title": "Ready to install",
+      "description": "TEO will now install only the integrations you need.",
+      "installing": "Installing...",
+      "install_complete": "Installation complete",
+      "open_dashboard": "Open TEO Dashboard"
+    }
+  },
+
+  "dashboard": {
+    "title": "TEO Dashboard",
+    "live": "Live",
+    "today": "Today",
+    "planning": "Planning",
+    "decisions": "Decisions",
+    "settings": "Settings",
+
+    "energy_flow": {
+      "solar": "Solar",
+      "battery": "Battery",
+      "grid": "Grid",
+      "home": "Home",
+      "ev": "EV"
+    },
+
+    "battery_status": {
+      "charging": "Charging",
+      "discharging": "Discharging",
+      "idle": "Standby",
+      "protected": "Protected (EV blocked)",
+      "soc": "State of charge"
+    },
+
+    "savings": {
+      "today_saved": "Saved today",
+      "vs_no_optimisation": "vs. no optimisation",
+      "from_solar": "From solar",
+      "from_battery": "From battery",
+      "from_grid": "From grid"
+    },
+
+    "price_now": "Current price",
+    "price_today": "Today's prices",
+    "price_tomorrow": "Tomorrow's prices",
+
+    "overrides": {
+      "title": "Manual control",
+      "force_charge": "Charge battery now",
+      "force_ev": "Charge EV now (ignore protection)",
+      "pause_all": "Pause all automation",
+      "resume": "Resume automation"
+    }
+  },
+
+  "decisions": {
+    "battery_charge_grid": "BATTERY CHARGED FROM GRID",
+    "battery_charge_solar": "BATTERY CHARGED FROM SOLAR",
+    "battery_discharge": "BATTERY DISCHARGING",
+    "battery_idle": "BATTERY IDLE",
+    "ev_charging": "EV CHARGING ACTIVE",
+    "ev_paused_soc": "EV CHARGING PAUSED — BATTERY LOW",
+    "ev_paused_price": "EV CHARGING PAUSED — HIGH PRICE",
+    "no_grid_charge_solar": "NO GRID CHARGING — SOLAR FORECAST",
+    "optimisation_recalculated": "OPTIMISATION RECALCULATED",
+
+    "reason_prefix": "Reason:",
+    "saving_prefix": "Expected saving:",
+    "battery_cost_prefix": "Battery wear cost:",
+    "net_gain_prefix": "Net gain:"
+  },
+
+  "human": {
+    "label": {
+      "battery_charge_grid": "Charging from grid",
+      "battery_charge_solar": "Charging from solar",
+      "battery_discharge": "Using battery",
+      "ev_pause_soc": "Protecting battery — car waiting",
+      "ev_pause_price": "Too expensive now — car waiting",
+      "ev_allowed": "Car charging",
+      "grid_export": "Selling surplus to grid",
+      "fallback_active": "Backup plan active"
+    },
+    "idle": {
+      "evening": "Saving for the evening",
+      "solar": "Waiting for sun",
+      "price": "Watching the price",
+      "full": "Sufficiently charged",
+      "no_price": "Awaiting Nord Pool"
+    },
+    "explanation": {
+      "battery_charge_grid": "Power costs {price} øre/kWh — below your limit of {threshold} øre/kWh.\nCharging the battery now. Next review at {valid_until}.",
+      "battery_charge_solar": "Surplus solar production right now.\nCharging the battery ({soc}%) for free. Next review at {valid_until}.",
+      "battery_discharge": "Power costs {price} øre/kWh — above your limit of {threshold} øre/kWh.\nUsing the battery ({soc}%) instead. Next review at {valid_until}.",
+      "battery_idle": "Battery {soc}% and price {price} øre/kWh in the normal range.\nHolding steady. Next review at {valid_until}.",
+      "ev_pause_soc": "Battery dropped to {soc}% — below the limit of {threshold}%.\nThe car waits until the battery is higher. Next review at {valid_until}.",
+      "ev_pause_price": "Power costs {price} øre/kWh — too expensive for the car now.\nThe car waits for cheaper hours. Next review at {valid_until}.",
+      "ev_allowed": "Battery {soc}% is above the protection limit.\nThe car is charging. Next review at {valid_until}.",
+      "grid_export": "Surplus production sold to the grid ({price} øre/kWh).\nNext review at {valid_until}.",
+      "fallback_active": "Optimisation unavailable — running a safe backup plan.\nNext review at {valid_until}."
+    },
+    "source_prefix": "Based on:",
+    "source": {
+      "price": "Price {price} øre",
+      "battery": "Battery {soc}%",
+      "scenario": "Scenario {scenario}"
+    }
+  },
+
+  "reasoning": {
+    "battery_charge_grid": "Current price {price} øre/kWh. Forecast shows {future_price} øre/kWh {timerange}. Expected net gain: {net} DKK after battery wear cost of {degradation} DKK.",
+    "battery_charge_solar": "Battery charging from surplus solar production ({solar} kWh available). Free energy stored for later use.",
+    "battery_discharge": "Current price {price} øre/kWh exceeds your threshold of {threshold} øre/kWh. The battery ({soc}%) is used instead of expensive grid power.",
+    "battery_idle": "Price {price} øre/kWh is in the normal range. Battery kept in standby; the inverter manages self-consumption.",
+    "ev_pause_soc": "Battery dropped to {soc}% — below your threshold of {threshold}%. EV charging stopped to protect the battery. Resumes automatically when SOC is above {resume}%.",
+    "ev_pause_price": "Current price {price} øre/kWh is high. EV charging deferred to cheaper hours ({timerange}).",
+    "ev_allowed": "Battery at {soc}% is above the protection threshold of {threshold}%. EV charging allowed at full current.",
+    "no_grid_charge_solar": "Solcast forecasts {kwh} kWh of solar tomorrow. The battery at {soc}% will be fully charged by {time}. Grid charging unnecessary.",
+    "optimisation_recalculated": "Nord Pool published tomorrow's prices. Cheapest {n} hours: {cheap_times} (avg {cheap_avg} øre/kWh). Most expensive {n} hours: {expensive_times} (avg {expensive_avg} øre/kWh). Plan updated.",
+    "fallback_prefix": "[FALLBACK] Rule-based — optimisation unavailable."
+  },
+
+  "notifications": {
+    "battery_low": "Battery level low ({soc}%)",
+    "ev_complete": "EV charging complete",
+    "daily_summary": "TEO saved you {amount} DKK today",
+    "grid_charging": "Charging battery from grid (price: {price} øre/kWh)",
+    "ev_blocked": "EV charging paused — battery below {threshold}%"
+  },
+
+  "errors": {
+    "device_unreachable": "Cannot reach {device} at {ip}",
+    "nordpool_unavailable": "Nord Pool prices unavailable — using fallback plan",
+    "solcast_unavailable": "Solcast forecast unavailable — using historical average",
+    "optimisation_failed": "Optimisation failed — using rule-based fallback"
+  },
+
+  "connect": {
+    "title": "TEO Connect",
+    "description": "Optional subscription for automatic algorithm updates and remote access.",
+    "price": "5–9 DKK/month",
+    "subscribe": "Subscribe to TEO Connect",
+    "already_subscribed": "You are subscribed to TEO Connect",
+    "data_sharing_title": "Anonymous data sharing",
+    "data_sharing_description": "Help improve TEO's algorithms by sharing anonymous energy data.",
+    "data_sharing_opt_in": "Yes, share my anonymous data",
+    "data_sharing_what": "What is shared:",
+    "data_sharing_what_items": {
+      "1": "Consumption per hour (anonymised)",
+      "2": "Actual solar production vs. forecast",
+      "3": "Optimisation results vs. plan"
+    },
+    "data_sharing_never": "Never shared:",
+    "data_sharing_never_items": {
+      "1": "Your address or location",
+      "2": "Device serial numbers",
+      "3": "Passwords",
+      "4": "IP address"
+    }
+  }
+}

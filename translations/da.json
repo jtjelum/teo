@@ -1,0 +1,294 @@
+{
+  "_metadata": {
+    "language": "da",
+    "language_name": "Dansk",
+    "version": "1.0.0",
+    "maintainer": "Jakob Tjelum",
+    "last_updated": "2026-05-13"
+  },
+
+  "config": {
+    "step": {
+      "user": {
+        "title": "TEO Opsætning — Sprog",
+        "description": "Vælg sprog. Har du et tidligere installations-ID, kan du indtaste det for at gendanne din opsætning (valgfrit).",
+        "data": {
+          "language": "Sprog",
+          "restore_id": "Tidligere installations-ID (valgfrit)"
+        }
+      },
+      "zone": {
+        "title": "Elzone",
+        "description": "Din elzone bestemmer hvilke Nord Pool-priser TEO bruger.",
+        "data": { "area": "Elzone" }
+      },
+      "mode": {
+        "title": "Tilstand",
+        "description": "TEO Local kører 100% offline uden konto. TEO Self-Hosted forbinder til TEO API med en gratis konto (angiv e-mail).",
+        "data": { "mode": "Tilstand", "email": "E-mail (kun Self-Hosted)" }
+      },
+      "discovery": {
+        "title": "Enheder fundet på dit netværk",
+        "description": "Vælg de enheder TEO skal styre. Enheder der ikke blev fundet, kan tilføjes senere.",
+        "data": { "selected_devices": "Vælg enheder", "continue": "Fortsæt uden enheder" }
+      },
+      "parameters": {
+        "title": "Systemparametre",
+        "description": "Alle værdier har fornuftige standardindstillinger og kan ændres senere.",
+        "data": {
+          "min_soc_percent": "Minimum batteriniveau (%)",
+          "ev_protection_soc_percent": "Stop EV-ladning under (%)",
+          "charge_from_grid_below_ore": "Lad batteri fra net hvis pris under (øre/kWh)",
+          "use_battery_above_ore": "Brug batteri hvis pris over (øre/kWh)",
+          "solcast_api_key": "Solcast API-nøgle (valgfri)",
+          "azimuth_degrees": "Panelretning (0=Nord, 90=Øst, 180=Syd, 270=Vest)",
+          "tilt_degrees": "Panelhældning (grader)",
+          "peak_power_kwp": "Installeret effekt (kWp)",
+          "degradation_cost_dkk_per_kwh": "Batterislid (DKK pr. kWh cyklus)"
+        }
+      }
+    },
+    "error": {
+      "invalid_id": "Installations-ID har ikke et gyldigt format.",
+      "id_not_found": "ID ikke fundet — en ny installation startes.",
+      "invalid_email": "Indtast en gyldig e-mailadresse."
+    },
+    "abort": {
+      "already_configured": "TEO er allerede konfigureret for denne installation."
+    }
+  },
+
+  "wizard": {
+    "title": "TEO Opsætning",
+    "subtitle": "Tjelums Energy Optimisation",
+    "step_of": "Trin {current} af {total}",
+    "next": "Næste",
+    "back": "Tilbage",
+    "install": "Installer TEO",
+    "scanning": "Scanner netværk...",
+    "scan_complete": "Scanning færdig",
+    "found_devices": "Fandt {count} enhed(er)",
+    "not_found": "Ikke fundet — vælg manuelt",
+
+    "step1": {
+      "title": "Vælg sprog",
+      "description": "Du kan ændre sprog igen under indstillinger."
+    },
+
+    "step2": {
+      "title": "Vælg elzone",
+      "description": "Din elzone bestemmer hvilke Nord Pool-priser TEO bruger.",
+      "dk2_label": "DK2 — Danmark Øst (Sjælland, Bornholm)",
+      "dk1_label": "DK1 — Danmark Vest (Jylland, Fyn)",
+      "se_label": "Sverige (SE1–SE4)",
+      "no_label": "Norge (NO1–NO5)",
+      "fi_label": "Finland"
+    },
+
+    "step3": {
+      "title": "Find dine enheder",
+      "description": "TEO scanner dit netværk for kendte enheder. Det tager typisk 30 sekunder.",
+      "scan_button": "Scan netværk",
+      "manual_entry": "Indtast IP-adresse manuelt",
+      "found_label": "Fundet automatisk",
+      "manual_label": "Indtastet manuelt",
+      "categories": {
+        "battery": "Batteri",
+        "inverter": "Inverter / Solcelleanlæg",
+        "ev_charger": "EV-lader",
+        "grid_meter": "Elmåler",
+        "heat_pump": "Varmepumpe"
+      }
+    },
+
+    "step4": {
+      "title": "Systemparametre",
+      "description": "Alle værdier har fornuftige standardindstillinger. Du kan ændre dem senere.",
+
+      "section_battery": "Batteribeskyttelse",
+      "min_soc_label": "Minimum batteriniveau",
+      "min_soc_description": "TEO aflader aldrig batteriet under denne grænse.",
+      "ev_protection_label": "Stop EV-ladning under",
+      "ev_protection_description": "EV-laderen stoppes hvis batteriet falder under dette niveau.",
+
+      "section_price": "Prisstrategi",
+      "charge_below_label": "Lad batteri fra net hvis pris under",
+      "charge_below_description": "TEO lader batteriet fra nettet når spotprisen er under denne grænse.",
+      "use_battery_above_label": "Brug batteri hvis pris over",
+      "use_battery_above_description": "TEO bruger batteriet i stedet for net når prisen er over denne grænse.",
+
+      "section_solar": "Solcelleprognose",
+      "solcast_key_label": "Solcast API-nøgle",
+      "solcast_key_description": "Gratis nøgle fra solcast.com. Kræver registrering.",
+      "solcast_get_key": "Hent gratis nøgle",
+      "azimuth_label": "Panelretning (azimut)",
+      "azimuth_description": "0° = Nord, 90° = Øst, 180° = Syd, 270° = Vest",
+      "tilt_label": "Panelhældning",
+      "tilt_description": "Vinklen fra vandret. Flade tage = 10°, skrå tage = 30–45°.",
+      "peak_power_label": "Installeret effekt",
+
+      "section_degradation": "Batterislid",
+      "degradation_cost_label": "Omkostning pr. kWh cyklus",
+      "degradation_cost_description": "TEO inkluderer batteriets slid i sine beregninger. Standardværdien på 0,04 DKK/kWh svarer til ~0,5% af batteriets udskiftningspris pr. fuld cyklus."
+    },
+
+    "step5": {
+      "title": "Klar til installation",
+      "description": "TEO installerer nu kun de integrationer du har brug for.",
+      "installing": "Installerer...",
+      "install_complete": "Installation færdig",
+      "open_dashboard": "Åbn TEO Dashboard"
+    }
+  },
+
+  "dashboard": {
+    "title": "TEO Dashboard",
+    "live": "Live",
+    "today": "I dag",
+    "planning": "Planlægning",
+    "decisions": "Beslutninger",
+    "settings": "Indstillinger",
+
+    "energy_flow": {
+      "solar": "Sol",
+      "battery": "Batteri",
+      "grid": "Net",
+      "home": "Hjem",
+      "ev": "Bil"
+    },
+
+    "battery_status": {
+      "charging": "Oplades",
+      "discharging": "Aflades",
+      "idle": "Standby",
+      "protected": "Beskyttet (EV blokeret)",
+      "soc": "Opladningsniveau"
+    },
+
+    "savings": {
+      "today_saved": "Sparet i dag",
+      "vs_no_optimisation": "vs. ingen optimering",
+      "from_solar": "Fra sol",
+      "from_battery": "Fra batteri",
+      "from_grid": "Fra net"
+    },
+
+    "price_now": "Aktuel pris",
+    "price_today": "Priser i dag",
+    "price_tomorrow": "Priser i morgen",
+
+    "overrides": {
+      "title": "Manuel styring",
+      "force_charge": "Oplad batteri nu",
+      "force_ev": "Lad bil nu (ignorer beskyttelse)",
+      "pause_all": "Pause al automatik",
+      "resume": "Genoptag automatik"
+    }
+  },
+
+  "decisions": {
+    "battery_charge_grid": "BATTERI OPLADES FRA NET",
+    "battery_charge_solar": "BATTERI OPLADES FRA SOL",
+    "battery_discharge": "BATTERI AFLADES",
+    "battery_idle": "BATTERI I STANDBY",
+    "ev_charging": "EV-LADNING AKTIV",
+    "ev_paused_soc": "EV-LADNING STOPPET — BATTERI LAVT",
+    "ev_paused_price": "EV-LADNING STOPPET — HØJE PRISER",
+    "no_grid_charge_solar": "INGEN NETLADNING — SOL FORVENTET",
+    "optimisation_recalculated": "OPTIMERING GENBEREGNET",
+
+    "reason_prefix": "Begrundelse:",
+    "saving_prefix": "Forventet besparelse:",
+    "battery_cost_prefix": "Batteriomkostning:",
+    "net_gain_prefix": "Nettogevinst:"
+  },
+
+  "human": {
+    "label": {
+      "battery_charge_grid": "Oplader fra net",
+      "battery_charge_solar": "Lader fra sol",
+      "battery_discharge": "Bruger batteri",
+      "ev_pause_soc": "Beskytter batteri — bilen venter",
+      "ev_pause_price": "For dyrt nu — bilen venter",
+      "ev_allowed": "Bilen lades",
+      "grid_export": "Sælger overskud til net",
+      "fallback_active": "Nødplan aktiv"
+    },
+    "idle": {
+      "evening": "Gemmer til aften",
+      "solar": "Venter på sol",
+      "price": "Holder pris i sigte",
+      "full": "Tilstrækkeligt ladet",
+      "no_price": "Afventer Nord Pool"
+    },
+    "explanation": {
+      "battery_charge_grid": "Strøm koster {price} øre/kWh — under din grænse på {threshold} øre/kWh.\nLader batteriet nu. Næste vurdering kl. {valid_until}.",
+      "battery_charge_solar": "Overskydende solproduktion lige nu.\nLader batteriet ({soc}%) gratis. Næste vurdering kl. {valid_until}.",
+      "battery_discharge": "Strøm koster {price} øre/kWh — over din grænse på {threshold} øre/kWh.\nBruger batteri ({soc}%) i stedet. Næste vurdering kl. {valid_until}.",
+      "battery_idle": "Batteri {soc}% og pris {price} øre/kWh i normalområdet.\nHolder status. Næste vurdering kl. {valid_until}.",
+      "ev_pause_soc": "Batteri faldt til {soc}% — under grænsen på {threshold}%.\nBilen venter til batteriet er højere. Næste vurdering kl. {valid_until}.",
+      "ev_pause_price": "Strøm koster {price} øre/kWh — for dyrt til bilen nu.\nBilen venter på billigere timer. Næste vurdering kl. {valid_until}.",
+      "ev_allowed": "Batteri {soc}% er over beskyttelsesgrænsen.\nBilen lades. Næste vurdering kl. {valid_until}.",
+      "grid_export": "Overskudsproduktion sælges til nettet ({price} øre/kWh).\nNæste vurdering kl. {valid_until}.",
+      "fallback_active": "Optimering utilgængelig — kører sikker nødplan.\nNæste vurdering kl. {valid_until}."
+    },
+    "source_prefix": "Baseret på:",
+    "source": {
+      "price": "Pris {price} øre",
+      "battery": "Batteri {soc}%",
+      "scenario": "Scenarie {scenario}"
+    }
+  },
+
+  "reasoning": {
+    "battery_charge_grid": "Aktuel pris {price} øre/kWh. Prognose viser {future_price} øre/kWh {timerange}. Forventet nettogevinst: {net} kr. efter batteriomkostning på {degradation} kr.",
+    "battery_charge_solar": "Batteriet oplades fra overskydende solproduktion ({solar} kWh tilgængelig). Gratis energi gemmes til senere brug.",
+    "battery_discharge": "Aktuel pris {price} øre/kWh er over din grænse på {threshold} øre/kWh. Batteriet ({soc}%) bruges i stedet for dyr netstrøm.",
+    "battery_idle": "Pris {price} øre/kWh er i normalområdet. Batteriet holdes i standby; inverteren styrer selv egetforbruget.",
+    "ev_pause_soc": "Batteri faldt til {soc}% — under din grænse på {threshold}%. EV-ladning stoppet for at beskytte batteriet. Genoptages automatisk når SOC er over {resume}%.",
+    "ev_pause_price": "Aktuel pris {price} øre/kWh er høj. EV-ladning udskudt til billigere timer ({timerange}).",
+    "ev_allowed": "Batteri på {soc}% er over beskyttelsesgrænsen på {threshold}%. EV-ladning tilladt med fuld strøm.",
+    "no_grid_charge_solar": "Solcast forudsiger {kwh} kWh sol i morgen. Batteriet på {soc}% vil blive fuldt ladet inden kl. {time}. Netladning unødvendig.",
+    "optimisation_recalculated": "Nord Pool offentliggjorde priser for i morgen. Billigste {n} timer: kl. {cheap_times} (snit {cheap_avg} øre/kWh). Dyreste {n} timer: kl. {expensive_times} (snit {expensive_avg} øre/kWh). Plan opdateret.",
+    "fallback_prefix": "[FALLBACK] Regelbaseret — optimering utilgængelig."
+  },
+
+  "notifications": {
+    "battery_low": "Batteriniveau lavt ({soc}%)",
+    "ev_complete": "Bilens opladning færdig",
+    "daily_summary": "TEO sparede dig {amount} DKK i dag",
+    "grid_charging": "Oplader batteri fra net (pris: {price} øre/kWh)",
+    "ev_blocked": "EV-ladning sat på pause — batteri under {threshold}%"
+  },
+
+  "errors": {
+    "device_unreachable": "Kan ikke nå {device} på {ip}",
+    "nordpool_unavailable": "Nord Pool-priser ikke tilgængelige — bruger fallback-plan",
+    "solcast_unavailable": "Solcast-prognose ikke tilgængelig — bruger historisk gennemsnit",
+    "optimisation_failed": "Optimering mislykkedes — bruger regler i stedet"
+  },
+
+  "connect": {
+    "title": "TEO Connect",
+    "description": "Valgfrit abonnement til automatiske algoritmopdateringer og fjernadgang.",
+    "price": "5–9 DKK/md",
+    "subscribe": "Abonner på TEO Connect",
+    "already_subscribed": "Du er tilmeldt TEO Connect",
+    "data_sharing_title": "Anonym datadeling",
+    "data_sharing_description": "Hjælp med at forbedre TEO's algoritmer ved at dele anonyme energidata.",
+    "data_sharing_opt_in": "Ja, del mine anonyme data",
+    "data_sharing_what": "Hvad deles:",
+    "data_sharing_what_items": {
+      "1": "Forbrug pr. time (anonymiseret)",
+      "2": "Faktisk solproduktion vs. prognose",
+      "3": "Optimeringsresultater vs. plan"
+    },
+    "data_sharing_never": "Aldrig delt:",
+    "data_sharing_never_items": {
+      "1": "Din adresse eller placering",
+      "2": "Serienumre på enheder",
+      "3": "Adgangskoder",
+      "4": "IP-adresse"
+    }
+  }
+}

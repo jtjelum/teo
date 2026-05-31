@@ -1,0 +1,15 @@
+{
+  "domain": "teo",
+  "name": "TEO — Tjelums Energy Optimisation",
+  "version": "1.0.0",
+  "documentation": "https://github.com/teo-energy/teo",
+  "issue_tracker": "https://github.com/teo-energy/teo/issues",
+  "codeowners": ["@jtjelum"],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "integration_type": "hub",
+  "dependencies": ["http"],
+  "after_dependencies": ["mqtt", "zeroconf"],
+  "requirements": ["scipy>=1.11", "holidays>=0.40"],
+  "loggers": ["custom_components.teo"]
+}

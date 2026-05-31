@@ -1,0 +1,7 @@
+# TEO Services
+# Definerer tilgængelige services for TEO-integrationen
+
+decision_analysis:
+  name: Beslutningsanalyse
+  description: Analysér afvigelser mellem planlagte og faktiske batteribeslutninger de seneste 24 timer. Genererer rapport som persistent notification.
+  fields: {}
