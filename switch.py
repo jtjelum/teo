@@ -9,10 +9,8 @@
 * ``switch.teo_charge_from_grid_allowed`` ??? H??RD LP-begr??nsning: tillad/forbyd
   netladning af batteriet i optimeringen.
 * ``switch.teo_ev_kun_sol_og_net`` ??? EV lader kun fra sol og net (ikke batteri).
-  S??tter Easee dynamic limit til 0A (ON=beskyt batteri, OFF=tillad batteri).
-
-De to LP-begr??nsninger persisteres i teo_config.yaml (sektion ``control``) og
-respekteres som h??rde gr??nser i LP'en ??? ikke vejledende.
+  ON  ??? s??tter Envoy reserve til 100% s?? batteriet ikke aflades til EV.
+  OFF ??? s??tter Envoy reserve tilbage til brugerens indstilling.
 """
 
 from __future__ import annotations
@@ -29,10 +27,6 @@ from .const import DOMAIN
 from .entity import TEOBaseEntity
 
 _LOGGER = logging.getLogger(__name__)
-
-# Easee charger IDs (master/slave p?? 20A kredsl??b)
-EASEE_DEVICE_IDS = ["1aee5bbe2ace36ba9b2bf16ae5d8ba60", "f551d94994611181870c80b378f176a8"]
-EASEE_MAX_CURRENT = 16  # A ??? normal ladning
 
 
 async def async_setup_entry(
@@ -184,12 +178,12 @@ class TEOChargeFromGridAllowedSwitch(TEOBaseEntity, SwitchEntity):
 
 
 class TEOEVProtectionSwitch(TEOBaseEntity, SwitchEntity):
-    """EV lader kun fra sol og net ??? beskytter batteriet.
+    """EV lader kun fra sol og net ??? batteriet beskyttes via Envoy reserve.
 
-    ON  ??? s??tter Easee dynamic limit til 0A (stopper EV-ladning ??jeblikkeligt)
-          OG s??tter ev_protection_soc_pct=100 i LP s?? planen heller ikke tillader det.
-    OFF ??? s??tter Easee dynamic limit til 16A (normal ladning tilladt)
-          OG s??tter ev_protection_soc_pct=30 i LP.
+    ON  ??? s??tter Envoy reserve til 100% s?? batteriet ikke aflades overhovedet.
+          EV forts??tter med at lade men KUN fra sol og net.
+    OFF ??? s??tter Envoy reserve tilbage til brugerens indstilling (ev_protection_soc_pct).
+          EV kan igen tr??kke fra batteriet.
     """
 
     _attr_name = "EV kun sol og net"
@@ -210,38 +204,28 @@ class TEOEVProtectionSwitch(TEOBaseEntity, SwitchEntity):
         except Exception:
             return False
 
-    async def _set_easee_limit(self, current_a: int) -> None:
-        """S??t dynamic limit p?? begge Easee-ladere. Fejl stopper aldrig switchen."""
-        for device_id in EASEE_DEVICE_IDS:
-            try:
-                await self.hass.services.async_call(
-                    "easee",
-                    "set_charger_dynamic_limit",
-                    {"device_id": device_id, "current": current_a},
-                    blocking=True,
-                )
-                _LOGGER.info("Easee %s dynamic limit sat til %dA", device_id, current_a)
-            except Exception as err:  # noqa: BLE001
-                _LOGGER.warning("Easee %s limit fejlede: %s", device_id, err)
-
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """ON = EV beskyttet ??? stop ladning ??jeblikkeligt."""
-        # 1. Stop Easee ??jeblikkeligt
-        await self._set_easee_limit(0)
-        # 2. Opdater LP-config
+        """ON = s??t Envoy reserve til 100% ??? batteriet aflades ikke til EV."""
         try:
+            # S??t Envoy reserve til 100% via battery_actuator
+            await self.coordinator.manual_actuate(reserve_pct=100.0)
+            # Opdater LP-config
             self.coordinator.config.ev_protection_soc_pct = 100.0
+            _LOGGER.info("EV beskyttelse ON ??? Envoy reserve sat til 100%%")
         except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Kunne ikke s??tte ev_protection_soc_pct: %s", err)
+            _LOGGER.warning("EV beskyttelse ON fejlede: %s", err)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """OFF = EV tilladt ??? genoptag normal ladning."""
-        # 1. Genoptag Easee ladning
-        await self._set_easee_limit(EASEE_MAX_CURRENT)
-        # 2. Opdater LP-config
+        """OFF = gendan Envoy reserve til brugerens indstilling."""
         try:
+            # Hent brugerens reserve-indstilling
+            user_reserve = self.coordinator.config.min_soc_pct
+            # Gendan Envoy reserve
+            await self.coordinator.manual_actuate(reserve_pct=user_reserve)
+            # Opdater LP-config
             self.coordinator.config.ev_protection_soc_pct = 30.0
+            _LOGGER.info("EV beskyttelse OFF ??? Envoy reserve genoprettet til %.0f%%", user_reserve)
         except Exception as err:  # noqa: BLE001
-            _LOGGER.warning("Kunne ikke s??tte ev_protection_soc_pct: %s", err)
+            _LOGGER.warning("EV beskyttelse OFF fejlede: %s", err)
         self.async_write_ha_state()
