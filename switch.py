@@ -1,20 +1,23 @@
 """TEO switch-platform.
 
-* ``switch.teo_automatik_aktiv`` — pause al aktiv styring (optimeringen kører
-  stadig, men anvendes ikke på enheder).
-* ``switch.teo_enphase_charge_from_grid`` — manuel netladning til/fra (skriver
+* ``switch.teo_automatik_aktiv`` ??? pause al aktiv styring (optimeringen k??rer
+  stadig, men anvendes ikke p?? enheder).
+* ``switch.teo_enphase_charge_from_grid`` ??? manuel netladning til/fra (skriver
   Envoy via opt_schedules=false).
-* ``switch.teo_sell_at_negative_price`` — HÅRD LP-begrænsning: stop salg til net
+* ``switch.teo_sell_at_negative_price`` ??? H??RD LP-begr??nsning: stop salg til net
   i timer med negativ spotpris.
-* ``switch.teo_charge_from_grid_allowed`` — HÅRD LP-begrænsning: tillad/forbyd
+* ``switch.teo_charge_from_grid_allowed`` ??? H??RD LP-begr??nsning: tillad/forbyd
   netladning af batteriet i optimeringen.
+* ``switch.teo_ev_kun_sol_og_net`` ??? EV lader kun fra sol og net (ikke batteri).
+  S??tter Easee dynamic limit til 0A (ON=beskyt batteri, OFF=tillad batteri).
 
-De to sidste persisteres i teo_config.yaml (sektion ``control``) og respekteres
-som hårde grænser i LP'en — ikke vejledende.
+De to LP-begr??nsninger persisteres i teo_config.yaml (sektion ``control``) og
+respekteres som h??rde gr??nser i LP'en ??? ikke vejledende.
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from homeassistant.components.switch import SwitchEntity
@@ -24,6 +27,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
 from .entity import TEOBaseEntity
+
+_LOGGER = logging.getLogger(__name__)
+
+# Easee charger IDs (master/slave p?? 20A kredsl??b)
+EASEE_DEVICE_IDS = ["1aee5bbe2ace36ba9b2bf16ae5d8ba60", "f551d94994611181870c80b378f176a8"]
+EASEE_MAX_CURRENT = 16  # A ??? normal ladning
 
 
 async def async_setup_entry(
@@ -42,7 +51,7 @@ async def async_setup_entry(
 
 
 class TEOAutomationSwitch(TEOBaseEntity, SwitchEntity):
-    """Slår TEO's aktive styring til/fra (optimeringen kører altid)."""
+    """Sl??r TEO's aktive styring til/fra (optimeringen k??rer altid)."""
 
     _attr_name = "Automatik aktiv"
     _attr_icon = "mdi:robot"
@@ -79,37 +88,31 @@ class TEOEnphaseChargeFromGridSwitch(TEOBaseEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self.coordinator.manual_actuate(charge_from_grid=True)
-        # Gem til user settings så værdien overlever genstart
         try:
             from . import user_settings
             from .const import USER_SETTING_CHARGE_FROM_GRID
             await self.hass.async_add_executor_job(
                 user_settings.set_value, USER_SETTING_CHARGE_FROM_GRID, True)
-        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
-            import logging
-            logging.getLogger(__name__).warning(
-                "Kunne ikke gemme charge_from_grid til user settings: %s", err)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke gemme charge_from_grid: %s", err)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.manual_actuate(charge_from_grid=False)
-        # Gem til user settings så værdien overlever genstart
         try:
             from . import user_settings
             from .const import USER_SETTING_CHARGE_FROM_GRID
             await self.hass.async_add_executor_job(
                 user_settings.set_value, USER_SETTING_CHARGE_FROM_GRID, False)
-        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
-            import logging
-            logging.getLogger(__name__).warning(
-                "Kunne ikke gemme charge_from_grid til user settings: %s", err)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke gemme charge_from_grid: %s", err)
         self.async_write_ha_state()
 
 
 class TEOSellAtNegativePriceSwitch(TEOBaseEntity, SwitchEntity):
-    """HÅRD LP-grænse: sælg overskud til net selv ved negativ pris (til = sælg)."""
+    """H??RD LP-gr??nse: s??lg overskud til net selv ved negativ pris (til = s??lg)."""
 
-    _attr_name = "Sælg ved negativ pris"
+    _attr_name = "S??lg ved negativ pris"
     _attr_icon = "mdi:cash-refund"
 
     def __init__(self, coordinator) -> None:
@@ -122,35 +125,29 @@ class TEOSellAtNegativePriceSwitch(TEOBaseEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self.coordinator.set_control(sell_at_negative=True)
-        # Gem til user settings så værdien overlever genstart
         try:
             from . import user_settings
             from .const import USER_SETTING_SELL_AT_NEGATIVE
             await self.hass.async_add_executor_job(
                 user_settings.set_value, USER_SETTING_SELL_AT_NEGATIVE, True)
-        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
-            import logging
-            logging.getLogger(__name__).warning(
-                "Kunne ikke gemme sell_at_negative til user settings: %s", err)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke gemme sell_at_negative: %s", err)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.set_control(sell_at_negative=False)
-        # Gem til user settings så værdien overlever genstart
         try:
             from . import user_settings
             from .const import USER_SETTING_SELL_AT_NEGATIVE
             await self.hass.async_add_executor_job(
                 user_settings.set_value, USER_SETTING_SELL_AT_NEGATIVE, False)
-        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
-            import logging
-            logging.getLogger(__name__).warning(
-                "Kunne ikke gemme sell_at_negative til user settings: %s", err)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke gemme sell_at_negative: %s", err)
         self.async_write_ha_state()
 
 
 class TEOChargeFromGridAllowedSwitch(TEOBaseEntity, SwitchEntity):
-    """HÅRD LP-grænse: tillad netladning af batteriet i optimeringen."""
+    """H??RD LP-gr??nse: tillad netladning af batteriet i optimeringen."""
 
     _attr_name = "Netladning tilladt"
     _attr_icon = "mdi:battery-charging-outline"
@@ -165,35 +162,35 @@ class TEOChargeFromGridAllowedSwitch(TEOBaseEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self.coordinator.set_control(grid_charge_allowed=True)
-        # Gem til user settings så værdien overlever genstart
         try:
             from . import user_settings
             from .const import USER_SETTING_GRID_CHARGE_ALLOWED
             await self.hass.async_add_executor_job(
                 user_settings.set_value, USER_SETTING_GRID_CHARGE_ALLOWED, True)
-        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
-            import logging
-            logging.getLogger(__name__).warning(
-                "Kunne ikke gemme grid_charge_allowed til user settings: %s", err)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke gemme grid_charge_allowed: %s", err)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.set_control(grid_charge_allowed=False)
-        # Gem til user settings så værdien overlever genstart
         try:
             from . import user_settings
             from .const import USER_SETTING_GRID_CHARGE_ALLOWED
             await self.hass.async_add_executor_job(
                 user_settings.set_value, USER_SETTING_GRID_CHARGE_ALLOWED, False)
-        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
-            import logging
-            logging.getLogger(__name__).warning(
-                "Kunne ikke gemme grid_charge_allowed til user settings: %s", err)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke gemme grid_charge_allowed: %s", err)
         self.async_write_ha_state()
 
 
 class TEOEVProtectionSwitch(TEOBaseEntity, SwitchEntity):
-    """EV lader kun fra sol og net."""
+    """EV lader kun fra sol og net ??? beskytter batteriet.
+
+    ON  ??? s??tter Easee dynamic limit til 0A (stopper EV-ladning ??jeblikkeligt)
+          OG s??tter ev_protection_soc_pct=100 i LP s?? planen heller ikke tillader det.
+    OFF ??? s??tter Easee dynamic limit til 16A (normal ladning tilladt)
+          OG s??tter ev_protection_soc_pct=30 i LP.
+    """
 
     _attr_name = "EV kun sol og net"
     _attr_icon = "mdi:ev-station"
@@ -213,18 +210,38 @@ class TEOEVProtectionSwitch(TEOBaseEntity, SwitchEntity):
         except Exception:
             return False
 
-    async def async_turn_on(self, **kwargs):
+    async def _set_easee_limit(self, current_a: int) -> None:
+        """S??t dynamic limit p?? begge Easee-ladere. Fejl stopper aldrig switchen."""
+        for device_id in EASEE_DEVICE_IDS:
+            try:
+                await self.hass.services.async_call(
+                    "easee",
+                    "set_charger_dynamic_limit",
+                    {"device_id": device_id, "current": current_a},
+                    blocking=True,
+                )
+                _LOGGER.info("Easee %s dynamic limit sat til %dA", device_id, current_a)
+            except Exception as err:  # noqa: BLE001
+                _LOGGER.warning("Easee %s limit fejlede: %s", device_id, err)
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """ON = EV beskyttet ??? stop ladning ??jeblikkeligt."""
+        # 1. Stop Easee ??jeblikkeligt
+        await self._set_easee_limit(0)
+        # 2. Opdater LP-config
         try:
             self.coordinator.config.ev_protection_soc_pct = 100.0
-            await self.coordinator.async_refresh()
-        except Exception:
-            pass
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke s??tte ev_protection_soc_pct: %s", err)
         self.async_write_ha_state()
 
-    async def async_turn_off(self, **kwargs):
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """OFF = EV tilladt ??? genoptag normal ladning."""
+        # 1. Genoptag Easee ladning
+        await self._set_easee_limit(EASEE_MAX_CURRENT)
+        # 2. Opdater LP-config
         try:
             self.coordinator.config.ev_protection_soc_pct = 30.0
-            await self.coordinator.async_refresh()
-        except Exception:
-            pass
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke s??tte ev_protection_soc_pct: %s", err)
         self.async_write_ha_state()
