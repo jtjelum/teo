@@ -37,6 +37,7 @@ async def async_setup_entry(
         TEOEnphaseChargeFromGridSwitch(coordinator),
         TEOSellAtNegativePriceSwitch(coordinator),
         TEOChargeFromGridAllowedSwitch(coordinator),
+        TEOEVProtectionSwitch(coordinator),
     ])
 
 
@@ -188,4 +189,42 @@ class TEOChargeFromGridAllowedSwitch(TEOBaseEntity, SwitchEntity):
             import logging
             logging.getLogger(__name__).warning(
                 "Kunne ikke gemme grid_charge_allowed til user settings: %s", err)
+        self.async_write_ha_state()
+
+
+class TEOEVProtectionSwitch(TEOBaseEntity, SwitchEntity):
+    """EV lader kun fra sol og net."""
+
+    _attr_name = "EV kun sol og net"
+    _attr_icon = "mdi:ev-station"
+
+    def __init__(self, coordinator) -> None:
+        super().__init__(coordinator, "ev_protection")
+        self.entity_id = "switch.teo_ev_kun_sol_og_net"
+
+    @property
+    def available(self) -> bool:
+        return True
+
+    @property
+    def is_on(self) -> bool:
+        try:
+            return bool(self.coordinator.config.ev_protection_soc_pct >= 100)
+        except Exception:
+            return False
+
+    async def async_turn_on(self, **kwargs):
+        try:
+            self.coordinator.config.ev_protection_soc_pct = 100.0
+            await self.coordinator.async_refresh()
+        except Exception:
+            pass
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs):
+        try:
+            self.coordinator.config.ev_protection_soc_pct = 30.0
+            await self.coordinator.async_refresh()
+        except Exception:
+            pass
         self.async_write_ha_state()
