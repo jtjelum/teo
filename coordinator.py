@@ -1,13 +1,13 @@
-"""DataUpdateCoordinator — TEO's nervecenter.
+"""DataUpdateCoordinator ??? TEO's nervecenter.
 
-Henter live-data (priser, sol, batteri-SOC, forbrug), kører optimeringen på de
+Henter live-data (priser, sol, batteri-SOC, forbrug), k??rer optimeringen p?? de
 planlagte tidspunkter (kl. 13:00 + 23:00) og falder tilbage til regelmotoren
-hvis LP-optimeringen ikke kan løses (designprincip #6). Hver beslutning skrives
+hvis LP-optimeringen ikke kan l??ses (designprincip #6). Hver beslutning skrives
 til beslutningsloggen med tosproget begrundelse (designprincip #3).
 
-Coordinatoren kender ikke konkrete enheder direkte — den arbejder mod de
-HA-entiteter som enhedsintegrationerne (integrations/) eksponerer, så kernen
-forbliver enhedsuafhængig (designprincip #4).
+Coordinatoren kender ikke konkrete enheder direkte ??? den arbejder mod de
+HA-entiteter som enhedsintegrationerne (integrations/) eksponerer, s?? kernen
+forbliver enhedsuafh??ngig (designprincip #4).
 """
 
 from __future__ import annotations
@@ -86,7 +86,7 @@ _LOGGER = logging.getLogger(__name__)
 
 @dataclass
 class TEOConfig:
-    """Indlæst brugerkonfiguration (teo_config.yaml + config entry)."""
+    """Indl??st brugerkonfiguration (teo_config.yaml + config entry)."""
 
     installation_id: str = ""
     mode: str = MODE_LOCAL
@@ -126,7 +126,7 @@ class TEOConfig:
 
 
 class TEODataUpdateCoordinator(DataUpdateCoordinator):
-    """Samler data, kører optimering/fallback og fører beslutningslog."""
+    """Samler data, k??rer optimering/fallback og f??rer beslutningslog."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         super().__init__(
@@ -142,7 +142,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         self.last_summary: dict[str, Any] = {}
         self.last_solver_status: Optional[str] = None
         self.fallback_active: bool = False
-        # Data Commons (DEL 2/3): seneste lærings- og prisanalyse-resultater.
+        # Data Commons (DEL 2/3): seneste l??rings- og prisanalyse-resultater.
         self.data_collector: Any = None
         self.last_learning_summary: dict[str, Any] = {}
         self.last_price_analysis: dict[str, Any] = {}
@@ -155,33 +155,33 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         self._last_actuation: Optional[tuple] = None
         self._last_actuation_check_ts: Optional[datetime] = None
         self.last_actuation: dict[str, Any] = {}
-        # Manuel "pause al automatik"-kontakt (dashboard fane 5). Når False
-        # beregner TEO stadig en plan, men anvender ikke styring på enheder.
+        # Manuel "pause al automatik"-kontakt (dashboard fane 5). N??r False
+        # beregner TEO stadig en plan, men anvender ikke styring p?? enheder.
         self.automation_enabled: bool = True
-        # Bruger-toggles (GUI) der virker som HÅRDE LP-begrænsninger (DEL: GUI).
+        # Bruger-toggles (GUI) der virker som H??RDE LP-begr??nsninger (DEL: GUI).
         self.allow_negative_export: bool = DEFAULT_SELL_AT_NEGATIVE_PRICE
         self.allow_grid_charge: bool = DEFAULT_CHARGE_FROM_GRID_ALLOWED
         self._last_optimisation_hour: Optional[int] = None
         # (action_type, fallback_active) for sidste loggede beslutning.
         self._last_logged_action_type: Optional[tuple[str, bool]] = None
         self._config_path = str(Path(CONFIG_DIR) / CONFIG_FILE)
-        # Seneste neteffekt fra AMS-readeren (kW, +import/−eksport) via MQTT-push.
+        # Seneste neteffekt fra AMS-readeren (kW, +import/???eksport) via MQTT-push.
         self._ams_grid_kw: Optional[float] = None
         self._ams_unsub = None
-        # Brugerindstillinger (indlæses fra teo_user_settings.yaml ved opstart)
+        # Brugerindstillinger (indl??ses fra teo_user_settings.yaml ved opstart)
         self._user_reserve_soc: Optional[float] = None
         self._user_charge_from_grid: Optional[bool] = None
         self._user_ev_solar_net_only: Optional[bool] = None
 
-    # -- opsætning ------------------------------------------------------
+    # -- ops??tning ------------------------------------------------------
     async def _async_setup(self) -> None:
-        """Engangsopsætning: indlæs konfig + åbn beslutningslog."""
+        """Engangsops??tning: indl??s konfig + ??bn beslutningslog."""
         data = await self.hass.async_add_executor_job(self._load_config_file)
         merged = {**data, **dict(self.entry.data)} if data else dict(self.entry.data)
         self.config = TEOConfig.from_dict(merged or {})
 
-        # Indlæs persistente brugerindstillinger fra teo_user_settings.yaml.
-        # Lazy loading — fejl må ALDRIG nedlægge TEO-integrationen.
+        # Indl??s persistente brugerindstillinger fra teo_user_settings.yaml.
+        # Lazy loading ??? fejl m?? ALDRIG nedl??gge TEO-integrationen.
         await self._load_user_settings()
 
         self.decision_log = await self.hass.async_add_executor_job(DecisionLog)
@@ -190,12 +190,12 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         await self._subscribe_ams()
 
     async def _load_user_settings(self) -> None:
-        """Indlæs persistente brugerindstillinger. Crasher aldrig."""
+        """Indl??s persistente brugerindstillinger. Crasher aldrig."""
         try:
             from . import user_settings
             settings = await self.hass.async_add_executor_job(user_settings.load)
 
-            # Sæt alle 6 indstillinger til gemte værdier (eller defaults)
+            # S??t alle 6 indstillinger til gemte v??rdier (eller defaults)
             from .const import (
                 USER_SETTING_MIN_SOC,
                 USER_SETTING_RESERVE_SOC,
@@ -209,36 +209,36 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             min_soc = settings.get(USER_SETTING_MIN_SOC)
             if min_soc is not None:
                 self.config.min_soc_pct = float(min_soc)
-                # Opdatér også raw config så det er konsistent
+                # Opdat??r ogs?? raw config s?? det er konsistent
                 self.config.raw.setdefault(CONF_BATTERY, {})[CONF_MIN_SOC_PCT] = float(min_soc)
 
-            # Reserve SOC (til Enphase battery_actuator — gemmes i last_actuation)
-            # Bemærk: denne værdi bruges først når manual_actuate kaldes første gang
+            # Reserve SOC (til Enphase battery_actuator ??? gemmes i last_actuation)
+            # Bem??rk: denne v??rdi bruges f??rst n??r manual_actuate kaldes f??rste gang
             self._user_reserve_soc = settings.get(USER_SETTING_RESERVE_SOC)
 
             # Charge from grid switch (manuel netladning)
             self._user_charge_from_grid = settings.get(USER_SETTING_CHARGE_FROM_GRID)
 
-            # LP-toggles (hårde begrænsninger i optimizer)
+            # LP-toggles (h??rde begr??nsninger i optimizer)
             self.allow_negative_export = bool(settings.get(USER_SETTING_SELL_AT_NEGATIVE))
             self.allow_grid_charge = bool(settings.get(USER_SETTING_GRID_CHARGE_ALLOWED))
 
             # EV solar+net only (til fremtidig EV-integration)
             self._user_ev_solar_net_only = settings.get(USER_SETTING_EV_SOLAR_NET_ONLY)
 
-            _LOGGER.info("Indlæste brugerindstillinger: min_soc=%s, reserve=%s, "
+            _LOGGER.info("Indl??ste brugerindstillinger: min_soc=%s, reserve=%s, "
                         "sell_negative=%s, grid_charge_allowed=%s",
                         self.config.min_soc_pct, self._user_reserve_soc,
                         self.allow_negative_export, self.allow_grid_charge)
-        except Exception as err:  # noqa: BLE001 — graceful degradation
-            _LOGGER.warning("Kunne ikke indlæse brugerindstillinger: %s — "
+        except Exception as err:  # noqa: BLE001 ??? graceful degradation
+            _LOGGER.warning("Kunne ikke indl??se brugerindstillinger: %s ??? "
                           "bruger defaults", err)
 
     async def _subscribe_ams(self) -> None:
-        """Abonnér på AMS-readerens MQTT-topic for realtids-neteffekt.
+        """Abonn??r p?? AMS-readerens MQTT-topic for realtids-neteffekt.
 
-        Readeren udsender rå JSON (felt ``data.P`` = netimport W, ``data.PO`` =
-        eksport W) — den opretter ingen HA-entitet selv, så TEO lytter direkte.
+        Readeren udsender r?? JSON (felt ``data.P`` = netimport W, ``data.PO`` =
+        eksport W) ??? den opretter ingen HA-entitet selv, s?? TEO lytter direkte.
         """
         topic = (self.config.raw.get(CONF_GRID_METER, {}) or {}).get(
             CONF_MQTT_TOPIC, DEFAULT_MQTT_TOPIC)
@@ -246,13 +246,13 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             from homeassistant.components import mqtt
             self._ams_unsub = await mqtt.async_subscribe(
                 self.hass, topic, self._on_ams_message)
-            _LOGGER.info("Abonnerer på AMS-topic '%s'", topic)
-        except Exception as err:  # noqa: BLE001 — MQTT evt. ikke klar endnu
-            _LOGGER.warning("Kunne ikke abonnere på AMS-topic: %s", err)
+            _LOGGER.info("Abonnerer p?? AMS-topic '%s'", topic)
+        except Exception as err:  # noqa: BLE001 ??? MQTT evt. ikke klar endnu
+            _LOGGER.warning("Kunne ikke abonnere p?? AMS-topic: %s", err)
 
     @callback
     def _on_ams_message(self, msg) -> None:  # noqa: ANN001
-        """Parse AMS-payload og gem seneste neteffekt (kW, +import/−eksport)."""
+        """Parse AMS-payload og gem seneste neteffekt (kW, +import/???eksport)."""
         try:
             payload = json.loads(msg.payload)
         except (ValueError, TypeError):
@@ -272,15 +272,15 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
 
     # -- opdateringscyklus ---------------------------------------------
     async def _async_update_data(self) -> dict[str, Any]:
-        """Kaldes hvert interval. Henter snapshot og kører optimering ved behov."""
+        """Kaldes hvert interval. Henter snapshot og k??rer optimering ved behov."""
         if self.decision_log is None:
             await self._async_setup()
 
         snapshot = await self._collect_snapshot()
 
         now = datetime.now()
-        # Kør den (dyre) LP-optimering når timen skifter, hvis vi endnu ikke
-        # har en plan, eller mens vi er i fallback (bliv ved at forsøge at
+        # K??r den (dyre) LP-optimering n??r timen skifter, hvis vi endnu ikke
+        # har en plan, eller mens vi er i fallback (bliv ved at fors??ge at
         # komme tilbage til optimering). Lykkes den ikke, bruges fallback.
         if (now.hour != self._last_optimisation_hour
                 or not self.last_plan or self.fallback_active):
@@ -309,19 +309,19 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         }
 
     async def _collect_snapshot(self) -> dict[str, Any]:
-        """Læs øjeblikkelige værdier fra HA-entiteter (tomt hvis endnu ikke wiret).
+        """L??s ??jeblikkelige v??rdier fra HA-entiteter (tomt hvis endnu ikke wiret).
 
-        Enhedsintegrationerne (integrations/) opretter entiteterne; her læses de
-        generisk, så kernen ikke afhænger af en bestemt fabrikat.
+        Enhedsintegrationerne (integrations/) opretter entiteterne; her l??ses de
+        generisk, s?? kernen ikke afh??nger af en bestemt fabrikat.
         """
         # Nord Pool (HA core): sensor.nord_pool_<zone>_current_price i DKK/kWh.
-        # × 100 → øre/kWh, som er TEO's interne prisenhed.
+        # ?? 100 ??? ??re/kWh, som er TEO's interne prisenhed.
         area = self.config.grid_area.lower()
         price_entity = f"sensor.nord_pool_{area}_current_price"
 
-        # Enphase Envoy/Encharge: match på device_class og entity-mønster i stedet
-        # for hardkodede ID'er (robust over for serienumre og sprog — SOC-
-        # entiteterne hedder fx "_batteri" på dansk).
+        # Enphase Envoy/Encharge: match p?? device_class og entity-m??nster i stedet
+        # for hardkodede ID'er (robust over for serienumre og sprog ??? SOC-
+        # entiteterne hedder fx "_batteri" p?? dansk).
         return {
             "price_ore": self._read_state_float(price_entity, scale=100.0),
             "battery_soc_pct": self._aggregate_battery_soc(),
@@ -338,7 +338,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         """Samlet EV-ladeeffekt (kW) over alle Easee-ladere.
 
         Finder Easee-entiteterne via entity-registreringen (sprog-/navne-
-        uafhængigt) og summerer deres effekt-sensorer.
+        uafh??ngigt) og summerer deres effekt-sensorer.
         """
         try:
             from homeassistant.helpers import entity_registry as er
@@ -366,7 +366,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
                 found = True
         return round(total, 3) if found else None
 
-    # -- aflæsning af HA-entiteter --------------------------------------
+    # -- afl??sning af HA-entiteter --------------------------------------
     @staticmethod
     def _coerce_float(raw: Any) -> Optional[float]:
         if raw in ("unknown", "unavailable", None, ""):
@@ -385,7 +385,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         return val * scale if val is not None else None
 
     def _aggregate_battery_soc(self) -> Optional[float]:
-        """Gennemsnitlig SOC på tværs af alle Encharge-batterier (%)."""
+        """Gennemsnitlig SOC p?? tv??rs af alle Encharge-batterier (%)."""
         vals = [
             self._coerce_float(st.state)
             for st in self.hass.states.async_all("sensor")
@@ -409,14 +409,14 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         return round(total, 3) if found else None
 
     def _envoy_power_kw(self, suffix: str) -> Optional[float]:
-        """Find første sensor.envoy_*<suffix> og returnér effekt i kW."""
+        """Find f??rste sensor.envoy_*<suffix> og return??r effekt i kW."""
         for st in self.hass.states.async_all("sensor"):
             if st.entity_id.startswith("sensor.envoy_") and st.entity_id.endswith(suffix):
                 return self._normalise_power_kw(st)
         return None
 
     def _normalise_power_kw(self, state) -> Optional[float]:
-        """Konvertér en effekt-sensor til kW uanset om enheden er W eller kW."""
+        """Konvert??r en effekt-sensor til kW uanset om enheden er W eller kW."""
         val = self._coerce_float(state.state)
         if val is None:
             return None
@@ -424,17 +424,17 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         return round(val / 1000.0, 3) if unit == "w" else round(val, 3)
 
     async def _try_lp(self, snapshot: dict[str, Any], now: datetime) -> bool:
-        """Forsøg fuld LP-optimering. Returnerer True hvis en plan blev lagt."""
+        """Fors??g fuld LP-optimering. Returnerer True hvis en plan blev lagt."""
         try:
             inputs = await self._build_optimizer_inputs(snapshot)
             result = await self.hass.async_add_executor_job(optimizer.run, inputs)
         except optimizer.OptimizerUnavailable as err:
-            # Forventet under opstart (SOC/priser endnu ikke klar) — fallback
-            # dækker sikkert, og binary_sensor.teo_fallback_aktiv viser status.
-            _LOGGER.debug("LP utilgængelig (%s) — bruger fallback", err)
+            # Forventet under opstart (SOC/priser endnu ikke klar) ??? fallback
+            # d??kker sikkert, og binary_sensor.teo_fallback_aktiv viser status.
+            _LOGGER.debug("LP utilg??ngelig (%s) ??? bruger fallback", err)
             return False
-        except Exception as err:  # noqa: BLE001 — enhver LP-fejl → sikker fallback
-            _LOGGER.warning("Uventet LP-fejl (%s) — bruger fallback", err)
+        except Exception as err:  # noqa: BLE001 ??? enhver LP-fejl ??? sikker fallback
+            _LOGGER.warning("Uventet LP-fejl (%s) ??? bruger fallback", err)
             return False
 
         self.last_plan = result.get("plan", [])
@@ -445,7 +445,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         return True
 
     def _apply_fallback(self, snapshot: dict[str, Any], now: datetime) -> None:
-        """Læg en sikker, reaktiv fallback-plan (genberegnes hvert interval)."""
+        """L??g en sikker, reaktiv fallback-plan (genberegnes hvert interval)."""
         result = self._run_fallback(snapshot, now)
         self.last_plan = result.get("plan", [])
         self.last_summary = result.get("summary", {})
@@ -453,18 +453,18 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
 
     async def _log_if_changed(self, snapshot: dict[str, Any],
                               now: datetime) -> None:
-        """Log beslutningen — men kun når handlingstypen ÆNDRER sig.
+        """Log beslutningen ??? men kun n??r handlingstypen ??NDRER sig.
 
         Forhindrer log-spam (cyklus hvert 10. sek) og giver en ren tidslinje
-        af faktiske ændringer i beslutningsloggen.
+        af faktiske ??ndringer i beslutningsloggen.
         """
         if self.decision_log is None or not self.last_plan:
             return
         step = self.last_plan[0]
         action_type = step.get("battery_action_type") or "BATTERY_IDLE"
-        # Re-log også når fallback skifter (optimal↔nødplan), selv om
-        # handlingstypen er den samme — ellers viser klartekst-labelen
-        # forældet "Nødplan aktiv" efter at optimeringen er kommet sig.
+        # Re-log ogs?? n??r fallback skifter (optimal???n??dplan), selv om
+        # handlingstypen er den samme ??? ellers viser klartekst-labelen
+        # for??ldet "N??dplan aktiv" efter at optimeringen er kommet sig.
         log_key = (action_type, self.fallback_active)
         if log_key == self._last_logged_action_type:
             return
@@ -476,7 +476,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             "fallback": self.fallback_active,
             "solver_used": self.last_solver_status,
         }
-        # Klartekst-felter (DEL 4): gyldighed til næste hele time, idle-årsag og
+        # Klartekst-felter (DEL 4): gyldighed til n??ste hele time, idle-??rsag og
         # en kort beslutningskilde til avancerede brugere.
         valid_until = (now.replace(minute=0, second=0, microsecond=0)
                        + timedelta(hours=1))
@@ -500,11 +500,11 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         )
 
     async def _actuate(self, snapshot: dict[str, Any], now: datetime) -> None:
-        """Anvend planens batterihandling på Envoy via den pålidelige tariff-vej.
+        """Anvend planens batterihandling p?? Envoy via den p??lidelige tariff-vej.
 
-        Skriver ved ÆNDRING af handling, OG gen-håndhæver ved drift: en ekstern
-        aktør (Enphase-cloud/Enlighten) gen-aktiverer opt_schedules ca. hvert 2.
-        minut og nulstiller reserven, så TEO tjekker tariffen hvert
+        Skriver ved ??NDRING af handling, OG gen-h??ndh??ver ved drift: en ekstern
+        akt??r (Enphase-cloud/Enlighten) gen-aktiverer opt_schedules ca. hvert 2.
+        minut og nulstiller reserven, s?? TEO tjekker tariffen hvert
         ACTUATION_CHECK_INTERVAL_SEC og gen-skriver hvis opt_schedules er flippet
         eller reserven er drevet. Respekterer pause-switchen (automation_enabled).
         Reserven holdes i [min_soc, max_soc]; gulvet beskytter nu reelt mod
@@ -533,7 +533,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         if not action_changed and not due_check:
             return
 
-        # Ved uændret handling: tjek for drift før vi skriver (undgå write-storm).
+        # Ved u??ndret handling: tjek for drift f??r vi skriver (undg?? write-storm).
         if not action_changed:
             self._last_actuation_check_ts = now
             state = await self._actuator.current_state()
@@ -557,7 +557,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             self.last_actuation = {**result, "action": action}
 
     def _idle_reason(self, snapshot: dict[str, Any], now: datetime) -> str:
-        """Udled HVORFOR batteriet holdes i ro (vælger idle-label, DEL 4.1)."""
+        """Udled HVORFOR batteriet holdes i ro (v??lger idle-label, DEL 4.1)."""
         if snapshot.get("price_ore") is None:
             return "no_price"
         soc = snapshot.get("battery_soc_pct")
@@ -571,7 +571,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         return "full"
 
     def _decision_source_summary(self, snapshot: dict[str, Any]) -> str:
-        """Kort 'Baseret på: …'-linje (DEL 4.4) på brugerens sprog."""
+        """Kort 'Baseret p??: ???'-linje (DEL 4.4) p?? brugerens sprog."""
         lang = self.config.language
         parts: list[str] = []
         price = snapshot.get("price_ore")
@@ -587,14 +587,14 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             parts.append(get_string("human.source.scenario", language=lang,
                                     scenario=scenario))
         prefix = get_string("human.source_prefix", language=lang)
-        return f"{prefix} " + " · ".join(parts) if parts else prefix
+        return f"{prefix} " + " ?? ".join(parts) if parts else prefix
 
     async def _build_optimizer_inputs(self, snapshot: dict[str, Any]) -> dict[str, Any]:
         """Byg det fulde LP-input fra Nord Pool-prisserie + batteristatus.
 
-        Forbruger den globale models ``model_calibration`` (DEL 7), når den er
+        Forbruger den globale models ``model_calibration`` (DEL 7), n??r den er
         anvendt: prisbuffer pr. time, solfaktor pr. vejrtype og cold-start
-        lastprofil. Last-prognosen kommer primært fra den LOKALT lærte
+        lastprofil. Last-prognosen kommer prim??rt fra den LOKALT l??rte
         familieprofil (family_patterns), med cold-start som fallback.
         Sol-prognose er 0 indtil Solcast wires (punkt 3).
         """
@@ -609,7 +609,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         soc_kwh = snapshot["battery_soc_pct"] / 100.0 * capacity
         min_soc_kwh = self.config.min_soc_pct / 100.0 * capacity
         max_soc_kwh = DEFAULT_BATTERY_MAX_SOC_PCT / 100.0 * capacity
-        # Hold start-SOC inden for grænserne (numerisk robusthed).
+        # Hold start-SOC inden for gr??nserne (numerisk robusthed).
         soc_kwh = min(max(soc_kwh, min_soc_kwh), max_soc_kwh)
 
         times = sorted(prices)
@@ -617,7 +617,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         anchor_kw = abs(house_kw) if house_kw is not None else 0.4
         model_cal = self.config.raw.get("model_calibration", {}) or {}
 
-        # Tidskontekst i LOKAL tid (familieprofiler er lært på lokal ugedag/time).
+        # Tidskontekst i LOKAL tid (familieprofiler er l??rt p?? lokal ugedag/time).
         from homeassistant.util import dt as dt_util
         contexts: list[tuple[Any, int, int, str]] = []
         local_hour: dict[Any, int] = {}
@@ -632,7 +632,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
                              profile_for(lt.weekday(), is_hol, is_sch)))
             local_hour[t] = lt.hour
 
-        # Last-prognose: lokal familieprofil → cold-start → fladt.
+        # Last-prognose: lokal familieprofil ??? cold-start ??? fladt.
         load_forecast = await self.hass.async_add_executor_job(
             forecast.build_load_forecast, contexts, model_cal, anchor_kw)
 
@@ -670,9 +670,13 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             "solar_uncertainty_factor": unc,
             "load_forecast_kw": load_forecast,
             "timestep_minutes": 60,
-            # HÅRDE bruger-begrænsninger (GUI-switches).
+            # H??RDE bruger-begr??nsninger (GUI-switches).
             "allow_grid_charge": self.allow_grid_charge,
             "allow_negative_export": self.allow_negative_export,
+            # EV-beskyttelse: n??r switch er ON (ev_protection_soc_pct=100)
+            # s??ttes ev_max til 0 s?? LP ikke planl??gger EV-ladning.
+            "ev_energy_demand_kwh": 0.0,
+            "ev_max_power_kw": 0.0 if self.config.ev_protection_soc_pct >= 100 else 7.4,
         }
 
     # -- GUI-styring (number/switch) ------------------------------------
@@ -681,8 +685,8 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
                              ) -> dict[str, Any]:
         """Manuel Envoy-skrivning fra dashboardet (reserve / charge-from-grid).
 
-        Skriver via den pålidelige opt_schedules=false-vej. Når automatik er
-        TÆNDT vil TEO's auto-aktuering revurdere ved næste cyklus; når den er
+        Skriver via den p??lidelige opt_schedules=false-vej. N??r automatik er
+        T??NDT vil TEO's auto-aktuering revurdere ved n??ste cyklus; n??r den er
         SLUKKET persisterer den manuelle indstilling (TEO aktuerer ikke).
         """
         if self._actuator is None or not self._actuator.available():
@@ -692,11 +696,11 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             charge_from_grid=charge_from_grid)
         if result.get("applied"):
             self.last_actuation = {**result, "action": "manual"}
-            self._last_actuation = None  # tving auto-revurdering næste cyklus
+            self._last_actuation = None  # tving auto-revurdering n??ste cyklus
         return result
 
     async def set_min_soc(self, pct: float) -> None:
-        """Sæt minimum-SOC: skriv til teo_config.yaml + brug straks i LP."""
+        """S??t minimum-SOC: skriv til teo_config.yaml + brug straks i LP."""
         await self.hass.async_add_executor_job(
             config_store.set_value, CONF_BATTERY, CONF_MIN_SOC_PCT, float(pct))
         self.config.min_soc_pct = float(pct)
@@ -704,7 +708,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
 
     async def set_control(self, *, sell_at_negative: Optional[bool] = None,
                           grid_charge_allowed: Optional[bool] = None) -> None:
-        """Sæt LP-toggles og persistér dem i teo_config.yaml under 'control'."""
+        """S??t LP-toggles og persist??r dem i teo_config.yaml under 'control'."""
         if sell_at_negative is not None:
             self.allow_negative_export = bool(sell_at_negative)
             await self.hass.async_add_executor_job(
@@ -729,9 +733,9 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
     async def _fetch_price_series(self) -> dict[datetime, float]:
         """Hent Nord Pool-priser (i dag + i morgen) via integrationens service.
 
-        Returnerer ``{time: øre/kWh}`` aggregeret til hele timer fra og med den
+        Returnerer ``{time: ??re/kWh}`` aggregeret til hele timer fra og med den
         aktuelle time, op til optimeringshorisonten. Nord Pool leverer DKK/MWh
-        i 15-min opløsning → ÷10 = øre/kWh, derefter timegennemsnit.
+        i 15-min opl??sning ??? ??10 = ??re/kWh, derefter timegennemsnit.
         """
         entries = self.hass.config_entries.async_entries("nordpool")
         if not entries:
@@ -748,13 +752,13 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
                     {"config_entry": entry_id, "date": day.isoformat()},
                     blocking=True, return_response=True,
                 )
-            except Exception as err:  # noqa: BLE001 — fx i morgen ikke offentliggjort endnu
-                _LOGGER.debug("Nord Pool-priser for %s utilgængelige: %s", day, err)
+            except Exception as err:  # noqa: BLE001 ??? fx i morgen ikke offentliggjort endnu
+                _LOGGER.debug("Nord Pool-priser for %s utilg??ngelige: %s", day, err)
                 continue
             for row in (resp or {}).get(area, []) or []:
                 try:
                     start = datetime.fromisoformat(row["start"])
-                    ore = float(row["price"]) / 10.0   # DKK/MWh → øre/kWh
+                    ore = float(row["price"]) / 10.0   # DKK/MWh ??? ??re/kWh
                 except (ValueError, KeyError, TypeError):
                     continue
                 hour = start.replace(minute=0, second=0, microsecond=0)
@@ -765,7 +769,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             h: round(sum(v) / len(v), 2)
             for h, v in buckets.items() if h >= now_hour
         }
-        # Begræns til optimeringshorisonten.
+        # Begr??ns til optimeringshorisonten.
         ordered = sorted(series.items())[:DEFAULT_OPTIMISATION_HORIZON_HOURS]
         return dict(ordered)
 
