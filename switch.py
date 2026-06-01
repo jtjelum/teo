@@ -37,7 +37,6 @@ async def async_setup_entry(
         TEOEnphaseChargeFromGridSwitch(coordinator),
         TEOSellAtNegativePriceSwitch(coordinator),
         TEOChargeFromGridAllowedSwitch(coordinator),
-        TEOEVProtectionSwitch(coordinator),
     ])
 
 
@@ -79,10 +78,30 @@ class TEOEnphaseChargeFromGridSwitch(TEOBaseEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self.coordinator.manual_actuate(charge_from_grid=True)
+        # Gem til user settings så værdien overlever genstart
+        try:
+            from . import user_settings
+            from .const import USER_SETTING_CHARGE_FROM_GRID
+            await self.hass.async_add_executor_job(
+                user_settings.set_value, USER_SETTING_CHARGE_FROM_GRID, True)
+        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
+            import logging
+            logging.getLogger(__name__).warning(
+                "Kunne ikke gemme charge_from_grid til user settings: %s", err)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.manual_actuate(charge_from_grid=False)
+        # Gem til user settings så værdien overlever genstart
+        try:
+            from . import user_settings
+            from .const import USER_SETTING_CHARGE_FROM_GRID
+            await self.hass.async_add_executor_job(
+                user_settings.set_value, USER_SETTING_CHARGE_FROM_GRID, False)
+        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
+            import logging
+            logging.getLogger(__name__).warning(
+                "Kunne ikke gemme charge_from_grid til user settings: %s", err)
         self.async_write_ha_state()
 
 
@@ -102,10 +121,30 @@ class TEOSellAtNegativePriceSwitch(TEOBaseEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self.coordinator.set_control(sell_at_negative=True)
+        # Gem til user settings så værdien overlever genstart
+        try:
+            from . import user_settings
+            from .const import USER_SETTING_SELL_AT_NEGATIVE
+            await self.hass.async_add_executor_job(
+                user_settings.set_value, USER_SETTING_SELL_AT_NEGATIVE, True)
+        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
+            import logging
+            logging.getLogger(__name__).warning(
+                "Kunne ikke gemme sell_at_negative til user settings: %s", err)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.set_control(sell_at_negative=False)
+        # Gem til user settings så værdien overlever genstart
+        try:
+            from . import user_settings
+            from .const import USER_SETTING_SELL_AT_NEGATIVE
+            await self.hass.async_add_executor_job(
+                user_settings.set_value, USER_SETTING_SELL_AT_NEGATIVE, False)
+        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
+            import logging
+            logging.getLogger(__name__).warning(
+                "Kunne ikke gemme sell_at_negative til user settings: %s", err)
         self.async_write_ha_state()
 
 
@@ -125,35 +164,28 @@ class TEOChargeFromGridAllowedSwitch(TEOBaseEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         await self.coordinator.set_control(grid_charge_allowed=True)
+        # Gem til user settings så værdien overlever genstart
+        try:
+            from . import user_settings
+            from .const import USER_SETTING_GRID_CHARGE_ALLOWED
+            await self.hass.async_add_executor_job(
+                user_settings.set_value, USER_SETTING_GRID_CHARGE_ALLOWED, True)
+        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
+            import logging
+            logging.getLogger(__name__).warning(
+                "Kunne ikke gemme grid_charge_allowed til user settings: %s", err)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         await self.coordinator.set_control(grid_charge_allowed=False)
-        self.async_write_ha_state()
-
-
-class TEOEVProtectionSwitch(TEOBaseEntity, SwitchEntity):
-    """EV lader kun fra sol og net (beskytter batteriet)."""
-
-    _attr_name = "EV kun sol og net"
-    _attr_icon = "mdi:ev-station"
-
-    def __init__(self, coordinator) -> None:
-        super().__init__(coordinator, "ev_protection")
-        self.entity_id = "switch.teo_ev_kun_sol_og_net"
-
-    @property
-    def is_on(self) -> bool:
-        # When ON: EV only charges from solar+grid (battery protected)
-        # This corresponds to ev_protection_soc being set to 100%
-        return bool(self.coordinator.config.ev_protection_soc_pct >= 100)
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        # Set ev_protection_soc to 100% (EV never uses battery)
-        await self.coordinator.set_ev_protection(100)
-        self.async_write_ha_state()
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        # Set ev_protection_soc to default (EV can use battery)
-        await self.coordinator.set_ev_protection(30)
+        # Gem til user settings så værdien overlever genstart
+        try:
+            from . import user_settings
+            from .const import USER_SETTING_GRID_CHARGE_ALLOWED
+            await self.hass.async_add_executor_job(
+                user_settings.set_value, USER_SETTING_GRID_CHARGE_ALLOWED, False)
+        except Exception as err:  # noqa: BLE001 — må ikke crashe entiteten
+            import logging
+            logging.getLogger(__name__).warning(
+                "Kunne ikke gemme grid_charge_allowed til user settings: %s", err)
         self.async_write_ha_state()
