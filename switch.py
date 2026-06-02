@@ -205,27 +205,36 @@ class TEOEVProtectionSwitch(TEOBaseEntity, SwitchEntity):
             return False
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """ON = s??t Envoy reserve til 100% ??? batteriet aflades ikke til EV."""
+        """ON = saet Envoy reserve til 100% - batteriet aflades ikke til EV."""
         try:
-            # S??t Envoy reserve til 100% via battery_actuator
             await self.coordinator.manual_actuate(reserve_pct=100.0)
-            # Opdater LP-config
             self.coordinator.config.ev_protection_soc_pct = 100.0
-            _LOGGER.info("EV beskyttelse ON ??? Envoy reserve sat til 100%%")
+            _LOGGER.info("EV beskyttelse ON - Envoy reserve sat til 100%%")
         except Exception as err:  # noqa: BLE001
             _LOGGER.warning("EV beskyttelse ON fejlede: %s", err)
+        try:
+            from . import user_settings
+            from .const import USER_SETTING_EV_SOLAR_NET_ONLY
+            await self.hass.async_add_executor_job(
+                user_settings.set_value, USER_SETTING_EV_SOLAR_NET_ONLY, True)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke gemme ev_solar_net_only: %s", err)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """OFF = gendan Envoy reserve til brugerens indstilling."""
         try:
-            # Hent brugerens reserve-indstilling
             user_reserve = self.coordinator.config.min_soc_pct
-            # Gendan Envoy reserve
             await self.coordinator.manual_actuate(reserve_pct=user_reserve)
-            # Opdater LP-config
             self.coordinator.config.ev_protection_soc_pct = 30.0
-            _LOGGER.info("EV beskyttelse OFF ??? Envoy reserve genoprettet til %.0f%%", user_reserve)
+            _LOGGER.info("EV beskyttelse OFF - Envoy reserve genoprettet til %.0f%%", user_reserve)
         except Exception as err:  # noqa: BLE001
             _LOGGER.warning("EV beskyttelse OFF fejlede: %s", err)
+        try:
+            from . import user_settings
+            from .const import USER_SETTING_EV_SOLAR_NET_ONLY
+            await self.hass.async_add_executor_job(
+                user_settings.set_value, USER_SETTING_EV_SOLAR_NET_ONLY, False)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke gemme ev_solar_net_only: %s", err)
         self.async_write_ha_state()
