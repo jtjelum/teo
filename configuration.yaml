@@ -1,0 +1,57 @@
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+# UI-styrede automationer (uændret) + TEO-automationer (egen mappe)
+automation ui: !include automations.yaml
+automation teo: !include_dir_merge_list teo_automations/
+automation logsystem: !include automations_teo_logsystem.yaml
+
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# TEO dashboard i YAML-tilstand (vises i sidepanelet; rører ikke dine UI-dashboards)
+lovelace:
+  mode: storage
+  dashboards:
+    teo-dashboard:
+      mode: yaml
+      filename: teo_dashboard.yaml
+      title: TEO
+      icon: mdi:flash
+      show_in_sidebar: true
+    teo-rapporter:
+      mode: yaml
+      filename: teo_rapport_dashboard.yaml
+      title: TEO Rapporter
+      icon: mdi:file-document
+      show_in_sidebar: true
+
+# TEO Command Line Sensorer
+command_line:
+  - sensor:
+      name: teo_daily_report_dato
+      unique_id: teo_daily_report_dato_v2
+      command: bash -c 'ls /config/teo_reports/*.txt 2>/dev/null | sort | tail -1 | xargs basename 2>/dev/null || echo Ingen_rapport'
+      scan_interval: 10
+
+  - sensor:
+      name: teo_rapport_antal
+      unique_id: teo_rapport_antal_v2
+      command: bash -c 'ls /config/teo_reports/*.txt 2>/dev/null | wc -l'
+      scan_interval: 10
+
+  - sensor:
+      name: teo_daily_report_indhold
+      unique_id: teo_daily_report_indhold_v1
+      command: bash -c '/usr/bin/python3 /config/teo_read_report.py'
+      scan_interval: 10
+
+  - sensor:
+      name: teo_match_rate_historik
+      unique_id: teo_match_rate_historik_v2
+      command: python3 /config/get_match_rate.py
+      scan_interval: 10

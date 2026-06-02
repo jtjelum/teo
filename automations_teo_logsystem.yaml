@@ -1,0 +1,16 @@
+# TEO Logsystem Automations
+# Tilføj dette til configuration.yaml:
+#   automation: !include automations_teo_logsystem.yaml
+#
+# Eller kopier indholdet til din eksisterende automations.yaml
+
+# DEL 2: Daglig afvigelses-analyse kl. 06:00
+- id: teo_daily_decision_analysis
+  alias: "TEO: Daglig afvigelses-analyse"
+  description: "Analysér seneste 24 timers planlagte vs. faktiske handlinger"
+  trigger:
+    - platform: time
+      at: "06:00:00"
+  action:
+    - service: teo.decision_analysis
+  mode: single

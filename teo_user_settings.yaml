@@ -1,0 +1,6 @@
+minimum_soc_pct: 5.0
+reserve_soc_pct: 5.0
+charge_from_grid: false
+sell_at_negative_price: false
+grid_charge_allowed_in_optimization: true
+ev_charge_solar_net_only: true
