@@ -1,4 +1,44 @@
+# TEO — .gitignore
+
+# Personlige konfigurationsfiler (indeholder IP-adresser, API-nøgler)
+teo_config.yaml
+teo_user_settings.yaml
+teo_algorithm_version.txt
+.teo_token
+
+# Databaser
+*.db
+*.db-shm
+*.db-wal
+
+# Rapporter og logs
+teo_reports/
+*.log
+*.txt
+
+# Arbejdsfiler fra udviklingsprocessen
+fix_*.py
+check_*.py
+test_*.py
+*_backup.py
+*_debug.py
+*_fixed.py
+*_original.py
+*_clean.py
+*.bak
+*.bak2
+
+# Python
 __pycache__/
 *.pyc
-*.db
-*.log
+*.pyo
+.pytest_cache/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
