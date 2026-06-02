@@ -15,6 +15,16 @@ TEO kombinerer **matematisk optimering** (Lineær Programmering) der planlægger
 
 ---
 
+## Screenshots
+
+**Live dashboard — batteri, spotpris og aktuel beslutning:**
+![TEO Live Dashboard](docs/images/dashboard_live.jpg)
+
+**Batteristyring og energistrategi — fuld kontrol med forklaringer:**
+![TEO Batteristyring](docs/images/batteristyring.jpg)
+
+---
+
 ## Hvorfor TEO?
 
 | Funktion | Typisk abonnementstjeneste | TEO |
