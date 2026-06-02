@@ -1,205 +1,220 @@
-# TEO — Total Energy Optimizer
+# TEO — Tjelums Energy Optimisation
 
-Git repository til versionsstyring af TEO-koden.
+> Gratis, lokalt og transparent energistyring — du ejer dit system og dine data.
 
-## 📦 Repository info
+**[Dansk](#dansk) | [English](#english)**
 
-- **Location:** `/config/custom_components/teo/`
-- **Branch:** master
-- **Version:** Læses fra `/config/teo_algorithm_version.txt`
+---
 
-## 🔧 Vigtigste git-kommandoer
+<a name="dansk"></a>
+## Dansk
 
-### Se status
-```bash
-cd /config/custom_components/teo
-sudo git status
-```
+TEO er et modulært energistyringssystem der kører lokalt på en Raspberry Pi. Det er bygget som et gratis, transparent alternativ til cloud-baserede abonnementstjenester.
 
-### Se historik
-```bash
-# Kort oversigt
-sudo git log --oneline
+TEO kombinerer **matematisk optimering** (Lineær Programmering) der planlægger energibrug 24–48 timer frem, **solcelleprognose** via Solcast, **Nord Pool spotprisbevidsthed** og **fuld transparens** — hver beslutning logges og forklares på klart sprog.
 
-# Detaljeret log med ændringer
-sudo git log --stat
+---
 
-# Seneste 5 commits
-sudo git log --oneline -5
+## Hvorfor TEO?
 
-# Se ændringer i specifik commit
-sudo git show <commit-hash>
-```
+| Funktion | Typisk abonnementstjeneste | TEO |
+|---|---|---|
+| Månedligt abonnement | 100–200 DKK/md | **Gratis** |
+| Cloud-afhængig | Ja — offline = ingen kontrol | **Nej — 100% lokal** |
+| Forklarer sine beslutninger | Nej — sort boks | **Ja — fuld beslutningslog** |
+| Virker med alle mærker | Begrænset liste | **Åbent integrationssystem** |
+| Kildekode | Lukket | **Open source (MIT)** |
 
-### Gem ændringer (commit)
-```bash
-# 1. Se hvad der er ændret
-sudo git status
+---
 
-# 2. Tilføj ændrede filer
-sudo git add .
+## Gratis — én model
 
-# 3. Commit med beskrivende besked
-sudo git commit -m "Beskrivelse af ændring"
+### TEO — 0 kr for altid
+- Kører lokalt på din Raspberry Pi
+- Nord Pool DK/SE/NO/FI spotpriser
+- Solcast solcelleprognose 48 timer frem
+- LP-optimering med EMHASS
+- Batteribeskyttelse mod EV-afladning
+- Alle enhedsintegrationer inkluderet
+- Fuld manuel styring og override
+- Beslutningslog på dansk/engelsk
+- Opt-in anonym datadeling — hjælper med at forbedre algoritmen for alle brugere
 
-# Eksempel med version:
-VERSION=$(cat /config/teo_algorithm_version.txt)
-sudo git commit -m "TEO v${VERSION} — rettelse af optimizer bug"
-```
+---
 
-### Se ændringer før commit
-```bash
-# Se ikke-staged ændringer
-sudo git diff
+## Understøttede enheder
 
-# Se staged ændringer (klar til commit)
-sudo git diff --cached
+### Batterier
+- Enphase IQ Battery 3T / 5P *(fuld kontrol)*
+- Victron Energy — alle modeller med Venus OS *(fuld kontrol)*
+- BYD Battery-Box HVS/HVM/HVL/LVS *(aflæsning)*
+- SMA Sunny Boy Storage
+- Huawei LUNA 2000
+- Sonnen eco / ecoLinx
+- Tesla Powerwall 2 / 3
 
-# Se ændringer i specifik fil
-sudo git diff coordinator.py
-```
+### Invertere
+- Enphase Envoy-S Metered
+- SolarEdge HD-Wave
+- Fronius Symo / Gen24
+- Huawei SUN2000
+- Goodwe
+- Kostal Plenticore
 
-### Sammenlign commits
-```bash
-# Se ændringer siden sidste commit
-sudo git diff HEAD~1
+### EV-ladere
+- Easee Home / Charge / Base
+- Zaptec Go / Pro
+- go-e Charger Gemini *(100% lokal)*
+- Wallbox Pulsar Plus
+- KEBA P30
 
-# Sammenlign to commits
-sudo git diff <commit1> <commit2>
+### Elmålere
+- AMS/HAN-reader *(alle nordiske)*
+- Shelly EM / 3EM / Pro 3EM *(100% lokal)*
+- HomeWizard P1 Meter *(100% lokal)*
+- Tibber Pulse
+- Kamstrup / Iskra HAN P1
 
-# Se filer der ændrede sig mellem commits
-sudo git diff --name-only <commit1> <commit2>
-```
+---
 
-### Fortryd ændringer (FARLIGT!)
-```bash
-# Fortryd ændringer i én fil (før add)
-sudo git checkout -- <filnavn>
+## Hardwarekrav
 
-# Fortryd alle unstaged ændringer (før add)
-sudo git checkout -- .
+| Model | RAM | Understøtter |
+|---|---|---|
+| Raspberry Pi 3B/3B+ | 1 GB | TEO Local (minimum) |
+| Raspberry Pi 4 (2 GB) | 2 GB | Local + Self-Hosted |
+| **Raspberry Pi 4 (4 GB)** | **4 GB** | **Begge — anbefalet** |
+| Raspberry Pi 5 | 4-8 GB | Begge — bedst |
+| Intel NUC / x86 Linux | 4+ GB | Begge |
+| Synology NAS (Docker) | 2+ GB | Begge |
 
-# Unstage en fil (efter add, før commit)
-sudo git reset HEAD <filnavn>
+---
 
-# Fortryd sidste commit (BEHOLDER ændringer)
-sudo git reset --soft HEAD~1
-
-# Fortryd sidste commit (SLETTER ændringer - FARLIGT!)
-sudo git reset --hard HEAD~1
-```
-
-### Genskab gammel version af fil
-```bash
-# Se fil fra specifik commit
-sudo git show <commit-hash>:<filnavn>
-
-# Genskab fil fra specifik commit
-sudo git checkout <commit-hash> -- <filnavn>
-```
-
-### Søg i historik
-```bash
-# Find commits der ændrede specifik fil
-sudo git log --oneline -- <filnavn>
-
-# Søg efter tekst i commit-beskeder
-sudo git log --grep="optimizer"
-
-# Find hvornår en linje kode blev ændret
-sudo git blame <filnavn>
-```
-
-## 📝 Anbefalet workflow
-
-### Efter daglig calibration bump
-```bash
-cd /config/custom_components/teo
-VERSION=$(cat /config/teo_algorithm_version.txt)
-sudo git add .
-sudo git commit -m "TEO v${VERSION} — auto bump efter daily calibration"
-```
-
-### Efter manuel kode-ændring
-```bash
-cd /config/custom_components/teo
-sudo git status                    # Se hvad der er ændret
-sudo git diff                      # Review ændringer
-sudo git add .                     # Stage alle ændringer
-sudo git commit -m "Fix: beskrivelse af rettelse"
-```
-
-### Før større ændringer
-```bash
-# Gem nuværende tilstand først
-sudo git add .
-sudo git commit -m "Checkpoint før [ændring]"
-
-# Lav ændringer...
-# Hvis det går galt:
-sudo git reset --hard HEAD~1       # Tilbage til checkpoint
-```
-
-## 🔍 Nyttige aliaser (valgfri)
-
-Tilføj til `~/.bashrc` eller `~/.zshrc`:
-```bash
-alias teo-status='cd /config/custom_components/teo && sudo git status'
-alias teo-log='cd /config/custom_components/teo && sudo git log --oneline -10'
-alias teo-diff='cd /config/custom_components/teo && sudo git diff'
-```
-
-## 📚 .gitignore
-
-Følgende filer/mapper ignoreres automatisk:
-- `__pycache__/` — Python cache
-- `*.pyc` — Compiled Python files
-- `*.db` — Database filer
-- `*.log` — Log filer
-
-## ⚠️ Vigtige noter
-
-1. **Brug altid `sudo`** — Repository er ejet af root
-2. **Commit regelmæssigt** — Efter hver betydelig ændring
-3. **Beskrivende commit-beskeder** — Forklar HVAD og HVORFOR
-4. **Test før commit** — Reload TEO og verificer at det virker
-5. **ALDRIG force push** — Dette er et lokalt repo, men vær alligevel forsigtig
-
-## 🆘 Hvis noget går galt
-
-### "Jeg commitede forkert fil"
-```bash
-# Fjern fil fra sidste commit (BEHOLDER lokal fil)
-sudo git rm --cached <filnavn>
-sudo git commit --amend
-```
-
-### "Jeg vil se koden som den var i går"
-```bash
-# Find commit fra i går
-sudo git log --since="yesterday" --oneline
-
-# Se kode fra specifik commit
-sudo git show <commit-hash>:<filnavn>
-```
-
-### "Jeg vil rulle tilbage til en tidligere version"
-```bash
-# 1. Find den gode commit
-sudo git log --oneline
-
-# 2. Genskab fra den commit (FARLIGT!)
-sudo git reset --hard <commit-hash>
-
-# 3. Reload TEO i Home Assistant
-```
-
-## 📖 Mere hjælp
+## Installation
 
 ```bash
-# Git manual
-man git
-
-# Hjælp til specifik kommando
-git <kommando> --help
+curl -sSL https://install.teo.energy | bash
 ```
+
+Eller med specifik IP-adresse:
+
+```bash
+bash install.sh 192.168.1.xxx
+```
+
+Scriptet installerer Home Assistant OS, TEO-integrationen og alle afhængigheder automatisk. Åbn derefter TEO-wizard på `http://homeassistant.local:8123`.
+
+### Manuel installation (avanceret)
+
+1. Installer [Home Assistant OS](https://www.home-assistant.io/installation/) på Raspberry Pi
+2. Kopier `custom_components/teo/` til `/config/custom_components/teo/`
+3. Kopier `integrations/` til `/config/integrations/`
+4. Genstart Home Assistant
+5. Gå til **Indstillinger → Enheder og tjenester → Tilføj integration → TEO**
+
+---
+
+## Beslutningsgennemsigtighed
+
+Hver handling TEO foretager logges på klart dansk:
+
+```
+[16:00] BATTERI OPLADES FRA NET
+  Pris 107 øre/kWh. Prognose viser 175 øre/kWh i aften (17-03).
+  Forventet besparelse: 68 øre/kWh × 8,4 kWh = 5,71 kr.
+  Batteriomkostning: 0,04 × 8,4 = 0,34 kr. Nettogevinst: 5,37 kr.
+
+[23:00] INGEN NETLADNING I NAT
+  Solcast forudsiger 14,2 kWh sol i morgen. Batteri er 45%.
+  Solen vil fylde batteriet inden kl. 11. Netladning unødvendig.
+```
+
+---
+
+## Datasikkerhed
+
+TEO er bygget med privacy by design:
+
+- Al energidata behandles lokalt på din Raspberry Pi
+- Ingen personoplysninger forlader din Pi
+- Anonym datadeling er opt-in og indeholder aldrig adresse, IP eller serienumre
+- Installations-ID er anonymt og genereres lokalt
+- Open source — du kan selv inspicere al kode
+
+---
+
+## Tilføj din egen enhedsintegration
+
+TEO er bygget til at andre nemt kan tilføje nye enheder. Se [CONTRIBUTING.md](CONTRIBUTING.md) for en komplet guide med kodeeksempler.
+
+Kort oversigt:
+1. Opret mappe: `integrations/<kategori>/<mærke>/`
+2. Implementér base-klassen (`BatteryBase`, `EVChargerBase` osv.)
+3. Skriv `manifest.json` med enhedsmetadata
+4. Tilføj tests
+5. Send pull request
+
+---
+
+## Roadmap
+
+- **v1.0** — Enphase + Easee + AMS + Nordpool + Solcast + EMHASS ✅
+- **v1.1** — Victron, BYD, Zaptec, go-e, Shelly, HomeWizard ✅
+- **v1.2** — Avanceret optimering, EV-afgangstidspunkt, ugentlige rapporter
+- **v1.3** — Push-notifikationer og forbedret fjernadgang
+- **v2.0** — Varmepumpeintegration (Nibe, Daikin, Mitsubishi)
+
+---
+
+## Licens
+
+MIT License — se [LICENSE](LICENSE).
+
+TEO er gratis at bruge, modificere og distribuere.
+
+---
+
+## Community
+
+- [GitHub Discussions](https://github.com/jtjelum/teo/discussions) — spørgsmål og idéer
+- [GitHub Issues](https://github.com/jtjelum/teo/issues) — fejlrapporter
+
+---
+
+<a name="english"></a>
+## English
+
+TEO is a modular home energy management system that runs locally on a Raspberry Pi. It is designed as a free, transparent alternative to cloud-dependent subscription services.
+
+TEO combines **mathematical optimisation** (Linear Programming) to plan energy use 24–48 hours ahead, **solar forecasting** via Solcast, **Nord Pool spot price awareness** and **full transparency** — every decision is logged and explained in plain language.
+
+### Why TEO?
+
+| Feature | Typical subscription service | TEO |
+|---|---|---|
+| Monthly subscription | 100–200 DKK/month | **Free** |
+| Cloud dependent | Yes — offline = no control | **No — 100% local** |
+| Explains its decisions | No — black box | **Yes — full decision log** |
+| Works with all brands | Limited list | **Open integration system** |
+| Source code | Closed | **Open source (MIT)** |
+
+### Installation
+
+```bash
+curl -sSL https://install.teo.energy | bash
+```
+
+See the Danish section above for full device support lists, hardware requirements and roadmap — they apply to both languages.
+
+### License
+
+MIT License — free to use, modify and distribute.
+
+### Community
+
+- [GitHub Discussions](https://github.com/jtjelum/teo/discussions) — questions and ideas
+- [GitHub Issues](https://github.com/jtjelum/teo/issues) — bug reports
+
+---
+
+*Built by Jakob Tjelum, Denmark · Open source · MIT License*
