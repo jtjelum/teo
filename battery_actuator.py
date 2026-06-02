@@ -59,7 +59,8 @@ class EnphaseBatteryActuator:
         return None
 
     def available(self) -> bool:
-        return self._credentials() is not None
+        """Returnerer altid True ??? credentials verificeres i apply()."""
+        return True
 
     # -- lavniveau HTTP (k??rer i executor ??? urllib er blokerende) -------
     @staticmethod
@@ -88,8 +89,12 @@ class EnphaseBatteryActuator:
                                     timeout=ENVOY_HTTP_TIMEOUT_SEC) as resp:
             return json.load(resp)
 
-    def _apply_sync(self, host: str, token: str, reserve_pct: Optional[float], mode: Optional[str],
+    def _apply_sync(self, reserve_pct: Optional[float], mode: Optional[str],
                     charge_from_grid: Optional[bool]) -> dict[str, Any]:
+        creds = self._credentials()
+        if creds is None:
+            return {"applied": False, "reason": "ingen Envoy-credentials"}
+        host, token = creds
         tariff = self._get_tariff(host, token)["tariff"]
         ss = tariff.setdefault("storage_settings", {})
 
@@ -143,13 +148,9 @@ class EnphaseBatteryActuator:
         Returnerer Envoys faktiske schedule-v??rdier efter skrivning, s?? kalderen
         kan verificere at kommandoen blev h??ndh??vet.
         """
-        creds = self._credentials()
-        if creds is None:
-            return {"applied": False, "reason": "ingen Envoy-credentials"}
-        host, token = creds
         try:
             result = await self.hass.async_add_executor_job(
-                self._apply_sync, host, token, reserve_pct, mode, charge_from_grid)
+                self._apply_sync, reserve_pct, mode, charge_from_grid)
             if result.get("applied"):
                 _LOGGER.info(
                     "Batteri-aktuering: reserve=%s%% mode=%s grid=%s (opt_schedules=%s)",
