@@ -59,10 +59,24 @@ class TEOAutomationSwitch(TEOBaseEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         self.coordinator.automation_enabled = True
+        try:
+            from . import user_settings
+            from .const import USER_SETTING_AUTOMATION_ENABLED
+            await self.hass.async_add_executor_job(
+                user_settings.set_value, USER_SETTING_AUTOMATION_ENABLED, True)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke gemme automation_enabled: %s", err)
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         self.coordinator.automation_enabled = False
+        try:
+            from . import user_settings
+            from .const import USER_SETTING_AUTOMATION_ENABLED
+            await self.hass.async_add_executor_job(
+                user_settings.set_value, USER_SETTING_AUTOMATION_ENABLED, False)
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke gemme automation_enabled: %s", err)
         self.async_write_ha_state()
 
 

@@ -1,0 +1,22 @@
+{
+  "name": "Enphase IQ Battery 3T / 5P",
+  "category": "battery",
+  "brand": "Enphase",
+  "models": ["IQ Battery 3T", "IQ Battery 5P", "IQ Battery 10T"],
+  "protocol": "local_http",
+  "discovery_method": ["mdns_envoy_local", "port_scan_80"],
+  "requires_installer_access": false,
+  "requires_diy_account": true,
+  "diy_account_url": "https://teo.energy/enphase-guide",
+  "nordic_zones_supported": ["DK1", "DK2", "SE1", "SE2", "SE3", "SE4", "NO1", "NO2", "NO3", "NO4", "NO5", "FI", "EE", "LV", "LT"],
+  "capabilities": {
+    "read_soc": true,
+    "read_power": true,
+    "set_reserve": true,
+    "set_charge_from_grid": true,
+    "set_storage_mode": true
+  },
+  "min_teo_version": "1.0.0",
+  "notes_da": "Kræver DIY Enlighten Manager-konto for batteristyring. Kun aflæsning uden konto.",
+  "notes_en": "Requires DIY Enlighten Manager account for battery control. Read-only without account."
+}

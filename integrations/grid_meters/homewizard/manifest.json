@@ -1,0 +1,18 @@
+{
+  "name": "HomeWizard P1 Meter",
+  "category": "grid_meter",
+  "brand": "HomeWizard",
+  "models": ["HWE-P1"],
+  "protocol": "local_rest_api",
+  "discovery_method": ["port_scan_80", "mdns_p1meter"],
+  "requires_installer_access": false,
+  "requires_diy_account": false,
+  "nordic_zones_supported": ["DK1", "DK2", "SE1", "SE2", "SE3", "SE4", "NO1", "NO2", "NO3", "NO4", "NO5", "FI"],
+  "capabilities": {
+    "read_power": true,
+    "read_voltage": true
+  },
+  "min_teo_version": "1.0.0",
+  "notes_da": "Aktiver Local API i HomeWizard Energy-appen: Indstillinger → Målere → P1 Meter → Local API.",
+  "notes_en": "Enable Local API in HomeWizard Energy app: Settings → Meters → P1 Meter → Local API."
+}

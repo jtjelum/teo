@@ -172,6 +172,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         self._user_reserve_soc: Optional[float] = None
         self._user_charge_from_grid: Optional[bool] = None
         self._user_ev_solar_net_only: Optional[bool] = None
+        self._user_automation_enabled: Optional[bool] = None
 
     # -- ops??tning ------------------------------------------------------
     async def _async_setup(self) -> None:
@@ -190,12 +191,9 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         await self._subscribe_ams()
 
     async def _load_user_settings(self) -> None:
-        """Indl??s persistente brugerindstillinger. Crasher aldrig."""
+        """Indlæs persistente brugerindstillinger. Crasher aldrig."""
         try:
             from . import user_settings
-            settings = await self.hass.async_add_executor_job(user_settings.load)
-
-            # S??t alle 6 indstillinger til gemte v??rdier (eller defaults)
             from .const import (
                 USER_SETTING_MIN_SOC,
                 USER_SETTING_RESERVE_SOC,
@@ -203,36 +201,55 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
                 USER_SETTING_SELL_AT_NEGATIVE,
                 USER_SETTING_GRID_CHARGE_ALLOWED,
                 USER_SETTING_EV_SOLAR_NET_ONLY,
+                USER_SETTING_AUTOMATION_ENABLED,
+                DEFAULT_USER_AUTOMATION_ENABLED,
             )
+            settings = await self.hass.async_add_executor_job(user_settings.load)
 
-            # Minimum SOC (bruges af LP-optimizer)
+            # Minimum SOC
             min_soc = settings.get(USER_SETTING_MIN_SOC)
             if min_soc is not None:
                 self.config.min_soc_pct = float(min_soc)
-                # Opdat??r ogs?? raw config s?? det er konsistent
                 self.config.raw.setdefault(CONF_BATTERY, {})[CONF_MIN_SOC_PCT] = float(min_soc)
 
-            # Reserve SOC (til Enphase battery_actuator ??? gemmes i last_actuation)
-            # Bem??rk: denne v??rdi bruges f??rst n??r manual_actuate kaldes f??rste gang
-            self._user_reserve_soc = settings.get(USER_SETTING_RESERVE_SOC)
+            # Reserve SOC — anvend straks via last_actuation så switchen viser korrekt
+            reserve = settings.get(USER_SETTING_RESERVE_SOC)
+            if reserve is not None:
+                self.last_actuation["reserved_soc"] = float(reserve)
 
-            # Charge from grid switch (manuel netladning)
-            self._user_charge_from_grid = settings.get(USER_SETTING_CHARGE_FROM_GRID)
+            # Charge from grid switch — anvend straks
+            cfg = settings.get(USER_SETTING_CHARGE_FROM_GRID)
+            if cfg is not None:
+                self.last_actuation["charge_from_grid"] = bool(cfg)
 
-            # LP-toggles (h??rde begr??nsninger i optimizer)
-            self.allow_negative_export = bool(settings.get(USER_SETTING_SELL_AT_NEGATIVE))
-            self.allow_grid_charge = bool(settings.get(USER_SETTING_GRID_CHARGE_ALLOWED))
+            # LP-toggles
+            self.allow_negative_export = bool(settings.get(
+                USER_SETTING_SELL_AT_NEGATIVE, False))
+            self.allow_grid_charge = bool(settings.get(
+                USER_SETTING_GRID_CHARGE_ALLOWED, True))
 
-            # EV solar+net only (til fremtidig EV-integration)
-            self._user_ev_solar_net_only = settings.get(USER_SETTING_EV_SOLAR_NET_ONLY)
+            # EV beskyttelse
+            ev_only = settings.get(USER_SETTING_EV_SOLAR_NET_ONLY, False)
+            if ev_only:
+                self.config.ev_protection_soc_pct = 100.0
+            else:
+                self.config.ev_protection_soc_pct = float(
+                    settings.get(USER_SETTING_RESERVE_SOC, self.config.min_soc_pct))
 
-            _LOGGER.info("Indl??ste brugerindstillinger: min_soc=%s, reserve=%s, "
-                        "sell_negative=%s, grid_charge_allowed=%s",
-                        self.config.min_soc_pct, self._user_reserve_soc,
-                        self.allow_negative_export, self.allow_grid_charge)
-        except Exception as err:  # noqa: BLE001 ??? graceful degradation
-            _LOGGER.warning("Kunne ikke indl??se brugerindstillinger: %s ??? "
-                          "bruger defaults", err)
+            # Automatik aktiv
+            self.automation_enabled = bool(settings.get(
+                USER_SETTING_AUTOMATION_ENABLED, DEFAULT_USER_AUTOMATION_ENABLED))
+
+            _LOGGER.info(
+                "Indlæste brugerindstillinger: min_soc=%s, reserve=%s, "
+                "sell_negative=%s, grid_charge=%s, ev_only=%s, automatik=%s",
+                self.config.min_soc_pct, reserve,
+                self.allow_negative_export, self.allow_grid_charge,
+                ev_only, self.automation_enabled)
+
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.warning("Kunne ikke indlæse brugerindstillinger: %s — bruger defaults", err)
+
 
     async def _subscribe_ams(self) -> None:
         """Abonn??r p?? AMS-readerens MQTT-topic for realtids-neteffekt.

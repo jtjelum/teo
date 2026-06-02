@@ -198,6 +198,7 @@ USER_SETTING_CHARGE_FROM_GRID: Final = "charge_from_grid"
 USER_SETTING_SELL_AT_NEGATIVE: Final = "sell_at_negative_price"
 USER_SETTING_GRID_CHARGE_ALLOWED: Final = "grid_charge_allowed_in_optimization"
 USER_SETTING_EV_SOLAR_NET_ONLY: Final = "ev_charge_solar_net_only"
+USER_SETTING_AUTOMATION_ENABLED: Final = "automation_enabled"
 
 # Defaults for user settings (Jakob's favoritindstillinger)
 DEFAULT_USER_MIN_SOC: Final = 5
@@ -206,6 +207,7 @@ DEFAULT_USER_CHARGE_FROM_GRID: Final = False
 DEFAULT_USER_SELL_AT_NEGATIVE: Final = False
 DEFAULT_USER_GRID_CHARGE_ALLOWED: Final = True
 DEFAULT_USER_EV_SOLAR_NET_ONLY: Final = True
+DEFAULT_USER_AUTOMATION_ENABLED: Final = True
 DEVICE_CATEGORIES: Final = (
     CATEGORY_BATTERY,
     CATEGORY_INVERTER,
