@@ -173,6 +173,10 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         self._user_charge_from_grid: Optional[bool] = None
         self._user_ev_solar_net_only: Optional[bool] = None
         self._user_automation_enabled: Optional[bool] = None
+        # EV-beskyttelse: tracking af om Easee er stoppet af TEO
+        self._ev_protection_active: bool = False
+        self._ev_protection_check_ts: Optional[datetime] = None
+        self._ev_current_limit_kw: Optional[float] = None
 
     # -- ops??tning ------------------------------------------------------
     async def _async_setup(self) -> None:
@@ -230,6 +234,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
 
             # EV beskyttelse
             ev_only = settings.get(USER_SETTING_EV_SOLAR_NET_ONLY, False)
+            self._user_ev_solar_net_only = bool(ev_only)
             if ev_only:
                 self.config.ev_protection_soc_pct = 100.0
             else:
@@ -310,6 +315,7 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
 
         await self._log_if_changed(snapshot, now)
         await self._actuate(snapshot, now)
+        await self._ev_protection_check(snapshot, now)
 
         return {
             "snapshot": snapshot,
@@ -572,6 +578,70 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             self._last_actuation = desired
             self._last_actuation_check_ts = now
             self.last_actuation = {**result, "action": action}
+
+    async def _ev_protection_check(self, snapshot: dict[str, Any], now: datetime) -> None:
+        """EV-beskyttelse: sæt Enphase reserve = nuværende SOC når EV lader.
+
+        Når 'EV lader kun fra sol og net' er TIL og EV faktisk lader:
+          - Sæt reserve = nuværende SOC → batteri låses, aflader ikke
+          - Hus + EV trækker fra sol + net
+          - Batteri bevares til når EV stopper
+
+        Når EV stopper eller switch slås FRA:
+          - Sæt reserve = min_soc (brugerens indstilling, typisk 5%)
+          - Batteri aflader igen frit til huset
+
+        Kører uafhængigt af automation_enabled — altid aktiv.
+        Skriver via battery_actuator (opt_schedules=False) som allerede virker.
+        """
+        try:
+            # Kør hvert 30. sekund (samme som ACTUATION_CHECK_INTERVAL_SEC)
+            due = (self._ev_protection_check_ts is None
+                   or (now - self._ev_protection_check_ts).total_seconds()
+                   >= ACTUATION_CHECK_INTERVAL_SEC)
+            if not due:
+                return
+            self._ev_protection_check_ts = now
+
+            ev_only = self._user_ev_solar_net_only or False
+            ev_kw = snapshot.get("ev_power_kw") or 0.0
+            soc_pct = snapshot.get("battery_soc_pct")
+            min_soc = float(self.config.min_soc_pct)
+
+            # EV lader aktivt når ev_solar_net_only er TIL
+            ev_lader = ev_only and ev_kw > 0.5
+
+            if ev_lader:
+                # Lås batteri: reserve = nuværende SOC
+                if soc_pct is not None:
+                    target_reserve = round(float(soc_pct), 1)
+                    if not self._ev_protection_active:
+                        _LOGGER.warning(
+                            "EV-beskyttelse: batteri låst på %.1f%% SOC "
+                            "(EV lader %.2f kW)", target_reserve, ev_kw)
+                        self._ev_protection_active = True
+                    # Skriv reserve via actuator (håndterer drift mod Enphase cloud)
+                    if self._actuator is not None:
+                        await self._actuator.apply(
+                            reserve_pct=target_reserve,
+                            mode=ENPHASE_MODE_SELF_CONSUMPTION,
+                            charge_from_grid=False)
+            else:
+                # EV lader ikke eller switch FRA → frigiv batteri til min_soc
+                if self._ev_protection_active:
+                    _LOGGER.warning(
+                        "EV-beskyttelse: batteri frigivet til min_soc=%.1f%% "
+                        "(ev_only=%s, ev_kw=%.2f kW)", min_soc, ev_only, ev_kw)
+                    self._ev_protection_active = False
+                    if self._actuator is not None:
+                        await self._actuator.apply(
+                            reserve_pct=min_soc,
+                            mode=ENPHASE_MODE_SELF_CONSUMPTION,
+                            charge_from_grid=False)
+
+        except Exception as err:  # noqa: BLE001 — må aldrig crashe TEO
+            _LOGGER.warning("EV-beskyttelse check fejlede: %s", err)
+
 
     def _idle_reason(self, snapshot: dict[str, Any], now: datetime) -> str:
         """Udled HVORFOR batteriet holdes i ro (v??lger idle-label, DEL 4.1)."""
