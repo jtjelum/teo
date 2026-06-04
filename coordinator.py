@@ -73,6 +73,7 @@ from .const import (
     DEFAULT_UPDATE_INTERVAL_SEC,
     DEFAULT_USE_BATTERY_ABOVE_ORE,
     DOMAIN,
+    ENPHASE_MODE_BACKUP,
     ENPHASE_MODE_SELF_CONSUMPTION,
     EVENING_PEAK_START_HOUR,
     MODE_LOCAL,
@@ -314,8 +315,12 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             self._apply_fallback(snapshot, now)
 
         await self._log_if_changed(snapshot, now)
-        await self._actuate(snapshot, now)
-        await self._ev_protection_check(snapshot, now)
+        # Aktuering og EV-beskyttelse deaktiveret pga. Enphase firmware 8.x
+        # begrænsninger — tariff API ignoreres og reserve/mode kan ikke styre
+        # afladning. Afventer installer-API adgang fra 1KOMMA5° eller Enphase.
+        # battery_actuator.py er klar til brug når API-adgang er på plads.
+        # await self._actuate(snapshot, now)
+        # await self._ev_protection_check(snapshot, now)
 
         return {
             "snapshot": snapshot,
@@ -533,8 +538,8 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         Reserven holdes i [min_soc, max_soc]; gulvet beskytter nu reelt mod
         dybafladning fordi vi skriver opt_schedules=false (se battery_actuator).
         """
-        if not self.automation_enabled or self._actuator is None:
-            return
+        if self._actuator is None:
+                return
         if not self.last_plan or not self._actuator.available():
             return
 
@@ -543,11 +548,14 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         max_soc = float(DEFAULT_BATTERY_MAX_SOC_PCT)
 
         if action == ACTION_BATTERY_CHARGE_GRID:
-            desired = (max_soc, ENPHASE_MODE_SELF_CONSUMPTION, True)  # lad fra net
+            desired = (max_soc, ENPHASE_MODE_SELF_CONSUMPTION, True)   # lad fra net
         elif action == ACTION_BATTERY_CHARGE_SOLAR:
-            desired = (min_soc, ENPHASE_MODE_SELF_CONSUMPTION, False)  # kun sol
+            desired = (min_soc, ENPHASE_MODE_SELF_CONSUMPTION, False)  # lad fra sol
         else:
-            desired = (min_soc, ENPHASE_MODE_SELF_CONSUMPTION, False)  # discharge/idle
+            # Discharge/idle: brug backup mode med reserve=min_soc.
+            # Enphase holder batteriet på min_soc og eksporterer overskudssol.
+            # backup mode virker på firmware 8.x — savings mode gør ikke.
+            desired = (min_soc, ENPHASE_MODE_BACKUP, False)
 
         action_changed = desired != self._last_actuation
         due_check = (self._last_actuation_check_ts is None
@@ -563,11 +571,12 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
             if state is None:
                 return
             rsv = state.get("reserved_soc")
+            current_mode = state.get("mode")
             drifted = (
-                state.get("opt_schedules") is not False           # opt re-aktiveret
-                or rsv is None
+                rsv is None
                 or abs(float(rsv) - desired[0]) > RESERVE_DRIFT_TOLERANCE_PCT
                 or bool(state.get("charge_from_grid")) != desired[2]
+                or current_mode != desired[1]                # mode driftet
             )
             if not drifted:
                 return
@@ -624,12 +633,12 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
                     if self._actuator is not None:
                         await self._actuator.apply(
                             reserve_pct=target_reserve,
-                            mode=ENPHASE_MODE_SELF_CONSUMPTION,
+                            mode=ENPHASE_MODE_BACKUP,
                             charge_from_grid=False)
             else:
                 # EV lader ikke eller switch FRA → frigiv batteri til min_soc
                 if self._ev_protection_active:
-                    _LOGGER.warning(
+                    _LOGGER.info(
                         "EV-beskyttelse: batteri frigivet til min_soc=%.1f%% "
                         "(ev_only=%s, ev_kw=%.2f kW)", min_soc, ev_only, ev_kw)
                     self._ev_protection_active = False
@@ -710,7 +719,8 @@ class TEODataUpdateCoordinator(DataUpdateCoordinator):
         local_hour: dict[Any, int] = {}
         for t in times:
             lt = dt_util.as_local(t) if getattr(t, "tzinfo", None) else t
-            hc = holiday_calendar.context(lt.date())
+            hc = await self.hass.async_add_executor_job(
+                holiday_calendar.context, lt.date())
             is_hol = (bool(hc["is_public_holiday_dk"])
                       if hc["is_public_holiday_dk"] is not None else None)
             is_sch = (bool(hc["is_school_holiday_dk"])

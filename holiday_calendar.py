@@ -12,6 +12,9 @@ Påskedag beregnes med computus (Meeus/Jones/Butcher) uden netkald.
 
 Alle funktioner er rene og defensive: fejler en kilde, returneres ``None`` for
 det felt frem for at vælte en indsamling (princip #2).
+
+NOTE: holidays-biblioteket bruger lazy imports internt. is_public_holiday() skal
+derfor kaldes via hass.async_add_executor_job() fra async-kontekst.
 """
 
 from __future__ import annotations
@@ -36,6 +39,22 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Cache per år — undgår gentagne imports
+_HOLIDAYS_CACHE: dict[int, object] = {}
+
+
+def _get_dk_holidays(year: int) -> object:
+    """Hent dansk helligdagskalender for et år — med cache.
+    
+    SKAL kaldes via executor fra async-kontekst da holidays-biblioteket
+    bruger lazy imports internt (blocking i Python 3.14 event loop).
+    """
+    if year not in _HOLIDAYS_CACHE:
+        import holidays
+        _HOLIDAYS_CACHE[year] = holidays.country_holidays(
+            HOLIDAYS_COUNTRY_DK, years=year)
+    return _HOLIDAYS_CACHE[year]
+
 
 def easter_sunday(year: int) -> date:
     """Påskedag (gregoriansk) via computus — ingen afhængigheder."""
@@ -57,12 +76,14 @@ def easter_sunday(year: int) -> date:
 
 
 def is_public_holiday(d: date) -> Optional[bool]:
-    """True hvis ``d`` er en officiel dansk helligdag (None hvis lib mangler)."""
+    """True hvis ``d`` er en officiel dansk helligdag (None hvis lib mangler).
+    
+    SKAL kaldes via hass.async_add_executor_job() fra async-kontekst.
+    """
     try:
-        import holidays
-        dk = holidays.country_holidays(HOLIDAYS_COUNTRY_DK, years=d.year)
+        dk = _get_dk_holidays(d.year)
         return d in dk
-    except Exception as err:  # noqa: BLE001 — biblioteket evt. ikke installeret endnu
+    except Exception as err:  # noqa: BLE001
         _LOGGER.debug("holidays-opslag fejlede: %s", err)
         return None
 
@@ -73,7 +94,6 @@ def _in_md_range(d: date, start_md: tuple[int, int], end_md: tuple[int, int]) ->
     end = date(d.year, *end_md)
     if start <= end:
         return start <= d <= end
-    # Spændet krydser nytår (fx 20/12 → 02/01).
     return d >= start or d <= end
 
 
@@ -86,7 +106,6 @@ def is_school_holiday(d: date) -> bool:
         return True
     if _in_md_range(d, SCHOOL_CHRISTMAS_START, SCHOOL_CHRISTMAS_END):
         return True
-    # Påskeferie: relativt til påskedag.
     easter = easter_sunday(d.year)
     start = easter + timedelta(days=EASTER_HOLIDAY_START_OFFSET)
     end = easter + timedelta(days=EASTER_HOLIDAY_END_OFFSET)
@@ -109,8 +128,11 @@ def days_until_easter(d: date) -> int:
     return (target - d).days
 
 
-def context(d: date) -> dict[str, Any]:
-    """De fire kalenderfelter til measurements-rækken (0/1 for bools)."""
+def context_sync(d: date) -> dict[str, Any]:
+    """De fire kalenderfelter til measurements-rækken (0/1 for bools).
+    
+    SKAL kaldes via hass.async_add_executor_job() fra async-kontekst.
+    """
     public = is_public_holiday(d)
     return {
         "is_public_holiday_dk": None if public is None else (1 if public else 0),
@@ -118,3 +140,11 @@ def context(d: date) -> dict[str, Any]:
         "days_until_christmas": days_until_christmas(d),
         "days_until_easter": days_until_easter(d),
     }
+
+
+def context(d: date) -> dict[str, Any]:
+    """Alias for context_sync — bevar bagudkompatibilitet.
+    
+    SKAL kaldes via hass.async_add_executor_job() fra async-kontekst.
+    """
+    return context_sync(d)

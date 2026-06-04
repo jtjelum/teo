@@ -74,8 +74,6 @@ views:
           - type: divider
           - entity: number.teo_batteri_minimum_soc
             name: Minimum-SOC (gulv for optimering)
-          - entity: number.teo_enphase_reserve_soc
-            name: Reserve-SOC (Envoy)
           - entity: switch.teo_enphase_charge_from_grid
             name: Netladning af batteri (Envoy)
           - entity: switch.teo_sell_at_negative_price
@@ -98,10 +96,6 @@ views:
           **Minimum-SOC:** Den laveste batteriprocent LP-optimizeren må aflade
           til. Sæt til 5% for maksimal udnyttelse — du har ingen backup-funktion.
 
-          **Reserve-SOC (Envoy):** Mindste batteriniveau Envoy holder. Skrives
-          direkte til Envoy og omgår Enphase cloud-overstyring.
-          Sæt til 5% da du ikke har backup-funktion.
-
           **Netladning af batteri (Envoy):** Manuel kommando — lad batteriet op
           fra nettet lige nu. Skriver direkte til Envoy.
           Bruges når du manuelt vil fylde batteriet op uden for TEOs plan.
@@ -115,10 +109,10 @@ views:
           batteriet lades kun via sol. Forskellig fra knappen ovenfor:
           denne styrer TEOs fremtidige plan, ikke hvad der sker lige nu.
 
-          **EV lader kun fra sol og net:** Når TIL sætter TEO Envoy reserve
-          til 100% så batteriet ikke aflades til EV-laderen.
-          EV fortsætter med at lade men kun fra sol og net.
-          Når FRA kan EV igen trække fra batteriet.
+          **EV lader kun fra sol og net:** Når TIL pauser TEO batteriet
+          (backup mode) mens EV lader, så EV kun trækker fra sol og net.
+          Batteriet bevares til husets forbrug. Automatisk frigivet når EV stopper.
+          Når FRA kan EV også trække fra batteriet.
 
   - title: "Økonomi"
     path: economy
